@@ -153,10 +153,12 @@ def check_max_variables(input_data):
 if __name__ == "__main__":
     input_data = load_file()
 
+    # 1:
+    check_studyID(input_data)
     '''
     TODO list
     - Make check function:
-        1.	Duplicate cases (STUDY_ID should be unique where ROW_STATUS="C")
+        1.	Duplicate cases (STUDY_ID should be unique where ROW_STATUS="C") _/
         2.	No current case (each STUDY_ID needs one row where ROW_STATUS="C")
         3.	Non-valid variable names (note these are case sensitive in File 1)
         4.	Missing variable names (against File 1 spec)
@@ -165,8 +167,17 @@ if __name__ == "__main__":
         7.	Max 1024 variables per File (only applicable to File 2)
 
     - Make custom exception for "bad file"
-    
+
+    - Make example bad files:
+        - Dupe Study_ID (where rows = c) _/ 
+        - Dupe Study_IDs (where only one of the dupe = c)
+        - Study_ID with no status = c
+        - ... bad variable names (require closer look at spec) 
+        - missing var names (one for each field ideally)
+        - Non-valid Date formats (test with a selection of fields)
+        - out of range vals (several checks for each bounded field)
+        - file with 1023 vars, 1024 vars, 1025 vars, 99999 vars
+        ....
     '''
 
-    # 1:
-    check_studyID(input_data)
+    
