@@ -1,6 +1,11 @@
+from tkinter import *
 from tkinter import filedialog as fd
 from tkinter.messagebox import showinfo
 import csv
+import ctypes 
+from datetime import datetime
+import os
+
 
 
 FILE_FORMAT = [
@@ -35,24 +40,29 @@ FILE_FORMAT = [
     "National_Opt_Out",
 ]
 
+
 def file_dialog():
     '''
     Opens file dialog to find appropriate files
     '''
+    root = Tk()
+    root.withdraw()
+    
     filetypes = (
         ('text files', '*.txt'),
         ('csv files', '*.csv')
     )
-
+    
     filename = fd.askopenfilename(
         title='Open a file',
         initialdir='/',
         filetypes=filetypes)
-
+    '''
     showinfo(
         title='Selected File',
         message=filename
     )
+    '''
     return filename
 
 
@@ -62,8 +72,8 @@ def load_file():
     
     '''
 
-    filename = file_dialog()
-    #filename = "Good File.csv" # debugging, hard coded file name (must be in same folder)
+    #filename = file_dialog()
+    filename = "Good File.csv" # debugging, hard coded file name (must be in same folder)
 
     data = [] # setup to store csv contents as list of dictionaries
 
@@ -149,12 +159,43 @@ def check_max_variables(input_data):
     pass
 
 
+def error_output(error_type = "Error", message = "Unable to verify file", affected_lines = [] ):
+    '''
+    Create dialog window for error processing file
+    Write txt ouptut of details
+    '''
+    if affected_lines: #if the list of affected lines is not null
+        message = message + "\nLine(s)"+ ", ".join(map(str,affected_lines))
+
+    message = message +"\n"
+    ctypes.windll.user32.MessageBoxW(0, message, error_type, 1)
+
+    curpath = os.path.abspath(os.curdir)
+
+
+    if not os.path.exists(OUT_FILENAME):
+        open(OUT_FILENAME, "w")
+
+    f = open( OUT_FILENAME, "a")
+    f.write(error_type)
+    f.write("\n")
+    f.write(message)
+    f.close()
+
+
+
+
+
 
 if __name__ == "__main__":
+    OUT_FILENAME = "Checker_Output_Log"+ datetime.now().strftime("%H%M%S")+".txt"
+
     input_data = load_file()
 
     # 1:
     check_studyID(input_data)
+
+    error_output("Test Error", "Test message", [1,2,3])
     '''
     TODO list
     - Make check function:
@@ -178,6 +219,10 @@ if __name__ == "__main__":
         - out of range vals (several checks for each bounded field)
         - file with 1023 vars, 1024 vars, 1025 vars, 99999 vars
         ....
+
+    - Output errors
+        - make txt file output + alert box?
+        - alert relevant to the error type and directions to fix.
     '''
 
     
