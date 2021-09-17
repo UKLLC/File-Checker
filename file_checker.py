@@ -37,7 +37,7 @@ FILE_FORMAT = [
     "Geocoding_Permission",
     "ZoeSymptomTracker_Permission",
     "Multiple_Birth",
-    "National_Opt_Out",
+    "National_Opt_Out"
 ]
 
 
@@ -92,7 +92,8 @@ def load_file():
     except OSError as e:
         print(e)
 
-    print(data)
+    for item in data:
+        print(item)
     return data
 
 
@@ -229,6 +230,7 @@ Record of test files:
     Good.csv:               All in order - should pass
     StudyID_1.csv:          Line 1 and 4 studyID duplicated (and both lines ROW_STATUS = "c") - should fail, more than one row with C
     StudyID_2.csv:          Line 1 and 4 studyID duplicated (line 4 ROW_STATUS = "C", line 1 = "H") - should pass
+    StudyID_3.csv:          Line 1 and 4 studyID duplicated (line 4 ROW_STATUS = "H", line 1 = "C") - should pass
     NullROW_STATUS_1.csv    Line 2 ROW_STATUS = "H" - should fail, no row with C
     NullROW_STATUS_2.csv    Lines 1 and 4 ROW_STATUS = "H" - should fail, no row with C
 '''
