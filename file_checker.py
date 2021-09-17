@@ -72,8 +72,8 @@ def load_file():
     
     '''
 
-    #filename = file_dialog()
-    filename = "Good File.csv" # debugging, hard coded file name (must be in same folder)
+    filename = file_dialog()
+    #filename = "Good.csv" # debugging, hard coded file name (must be in same folder)
 
     data = [] # setup to store csv contents as list of dictionaries
 
@@ -165,7 +165,7 @@ def error_output(error_type = "Error", message = "Unable to verify file", affect
     Write txt ouptut of details
     '''
     if affected_lines: #if the list of affected lines is not null
-        message = message + "\nLine(s)"+ ", ".join(map(str,affected_lines))
+        message = message + "\nLine(s) "+ ", ".join(map(str,affected_lines))
 
     message = message +"\n"
     ctypes.windll.user32.MessageBoxW(0, message, error_type, 1)
@@ -183,19 +183,16 @@ def error_output(error_type = "Error", message = "Unable to verify file", affect
     f.close()
 
 
-
-
-
-
 if __name__ == "__main__":
-    OUT_FILENAME = "Checker_Output_Log"+ datetime.now().strftime("%H%M%S")+".txt"
+    OUT_FILENAME = "out\\Checker_Output_Log"+ datetime.now().strftime("%H%M%S")+".txt"
 
     input_data = load_file()
 
     # 1:
     check_studyID(input_data)
 
-    error_output("Test Error", "Test message", [1,2,3])
+    error_output("Test Error1", "Test message1", [1,2,3])
+    error_output("Test Error2", "Test message2", [4,5,6])
     '''
     TODO list
     - Make check function:
@@ -226,3 +223,12 @@ if __name__ == "__main__":
     '''
 
     
+
+'''
+Record of test files:
+    Good.csv:               All in order - should pass
+    StudyID_1.csv:          Line 1 and 4 studyID duplicated (and both lines ROW_STATUS = "c") - should fail, more than one row with C
+    StudyID_2.csv:          Line 1 and 4 studyID duplicated (line 4 ROW_STATUS = "C", line 1 = "H") - should pass
+    NullROW_STATUS_1.csv    Line 2 ROW_STATUS = "H" - should fail, no row with C
+    NullROW_STATUS_2.csv    Lines 1 and 4 ROW_STATUS = "H" - should fail, no row with C
+'''
