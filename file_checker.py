@@ -153,47 +153,55 @@ def load_file(filename = False):
 
     content_checker(data)
 
+# ------------------------------------- 
+# Checker functions
+
+def get_primary_rows(input_data):
+    '''
+    Reduce data to rows where ROW_STATUS == "C" (primary row per participant)
+    '''
+    return [row for row in input_data if row["ROW_STATUS"].lower() == "c"] 
+
+    
 
 def check_studyID(input_data):
     '''
     Duplicate cases (STUDY_ID should be unique where ROW_STATUS="C")
     '''
-    reduced_data = [] 
-    # include only rows where ROW_STATUS == c
-    for row in input_data:
-        if row["ROW_STATUS"].lower() == "c":
-            reduced_data.append(row)
-    
-    studyIDs = [item["STUDY_ID"] for item in reduced_data]
-    
-    if len(studyIDs) != len(set(studyIDs)):
-        print("dupes")
-        # TODO
-        # Raise custom exception
-        # identify lines? 
-    else:
-        print("Study_ID pass")
-
+    studyIDs = [item["STUDY_ID"] for item in get_primary_rows(input_data)]
+    problem_ids = []
+    for id in studyIDs:
+        if studyIDs.count(id) > 1:
+            problem_ids.append(id)
+    if problem_ids:
+        error_output("Duplicate Current Record", "File contains multiple rows where ROW_STATUS = 'C' for STUDY_ID(s) {}.".format(set(problem_ids)))
 
 def check_current_case(input_data):
     '''
     No current case (each STUDY_ID needs one row where ROW_STATUS="C")
     '''
-    pass
+    primary_studyIDs = [item["STUDY_ID"] for item in get_primary_rows(input_data)]
+    all_studyIDs = set([row["STUDY_ID"] for row in input_data])
 
+    for id in all_studyIDs:
+        if id not in primary_studyIDs:
+            error_output("No Current Record", "File contains no current record for STUDY_ID {}".format(id))
 
-def check_valid_var_names(input_data):
+def check_NHS_number(input_data):
     '''
-    Non-valid variable names (note these are case sensitive in File 1)
+    Make sure NHS number conforms to requirements:
+        precisely 10 digits or null
+        no spaces
     '''
-    pass
-
-
-def check_missing_var_names(input_data):
-    '''
-    Missing variable names (against File 1 spec)
-    '''
-    pass
+    NHS_numbers = [row["NHS_NUMBER"] for row in input_data]
+    problem_lines = []
+    for i in range(len(NHS_numbers)):
+        number = NHS_numbers[i]
+        if number:
+            if len(number) != 10 and len(number) != 0 and len(number.split(" ")) == 1:
+                problem_lines.append(i)
+    if problem_lines:
+        error_output("NHS Number Format Error", "NHS number of unexpected length. Please ensure NHS numbers include 10 characters and no spaces", problem_lines)
 
 
 def check_date_formats(input_data):
@@ -218,6 +226,8 @@ def check_max_variables(input_data):
 
 def content_checker(input_data):
     check_studyID(input_data)
+    check_current_case(input_data)
+    check_NHS_number(input_data)
 
 
 def error_output(error_type = "Error", message = "Unable to verify file", affected_lines = [] ):
@@ -226,6 +236,8 @@ def error_output(error_type = "Error", message = "Unable to verify file", affect
     Write txt ouptut of details
     '''
     if affected_lines: #if the list of affected lines is not null
+        if len(affected_lines) > 10:
+            affected_lines = (affected_lines[:10]).append("...")
         message = message + "\nLine(s) "+ ", ".join(map(str,affected_lines))
 
     message = message +"\n"
@@ -242,7 +254,7 @@ def error_output(error_type = "Error", message = "Unable to verify file", affect
     f.write(error_type)
     f.write("\n")
     f.write(message)
-    f.write("--------------------")
+    f.write("--------------------\n")
     f.close()
 
 
@@ -254,7 +266,8 @@ if __name__ == "__main__":
     # List test cases to run sequentially (avoids file dialog for sake of speed)
     test_files = ["Good.csv","Good_unlabelled.csv","Bad_field_names.csv",
             "EXCEED_FILE1_v1_20210514.csv","UnderVals.csv","OverVals.csv",
-            "StudyID_1.csv", "NullROW_STATUS_1.csv", "NullROW_STATUS_2.csv"]
+            "StudyID_1.csv", "NullROW_STATUS_1.csv", "NullROW_STATUS_2.csv",
+            "bad_NHS_NUMBER.csv"]
 
     for filename in test_files:
         print("Testing file {}".format(filename))
@@ -309,4 +322,5 @@ Record of test files:
         StudyID_1.csv           Line 6,7 studyID duplicated (and both lines ROW_STATUS = "c") - should fail, more than one row with C
         NullROW_STATUS_1.csv    Line 6,7 ROW_STATUS = "H" - should fail, no row with C
         NullROW_STATUS_2.csv    Lines 1,2 and 6,7 ROW_STATUS = "H" - should fail, 2 cases of no row with C
+        bad_NHS_NUMBER.csv      line 3 contains spaces, line 6 too few characters - should fail twice
 '''
