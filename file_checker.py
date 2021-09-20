@@ -77,10 +77,7 @@ def load_labelled_file(filename):
             data.append(row)
 
         print(f'File contains {line_count} entries.')            
-    ''' Debugging
-    for item in data:
-        print(item)
-    '''
+
     return data
 
 
@@ -117,7 +114,6 @@ def load_file(filename = False):
     If no variable names are present, load assuming format as in specification.
 
     '''
-
     if not filename: # if filename has not been passed (would only be for debugging/testing)
         filename = file_dialog()
 
@@ -162,7 +158,35 @@ def get_primary_rows(input_data):
     '''
     return [row for row in input_data if row["ROW_STATUS"].lower() == "c"] 
 
+def verify_date_format(date):
+    '''
+    Non-valid Date formats (must be DD/MM/YYYY)
+    '''
+    date_format = '%d/%m/%Y'
+    try:
+        date_obj = datetime.strptime(date, date_format)
+        return True
+    except ValueError:
+        return False
     
+def verify_varchar(var, length):
+    '''
+    Check variable (string) is of a certain length
+    '''
+    if len(var) <= length:
+        return True
+    else:
+        return False
+
+def verify_char(var, legal_chars = []):
+    '''
+    Check variable is a character and of legal permutations
+    '''
+    if len(var) == 1 and var in legal_chars:
+        return True
+    else:
+        return False 
+
 
 def check_studyID(input_data):
     '''
@@ -199,17 +223,70 @@ def check_NHS_number(input_data):
         number = NHS_numbers[i]
         if number:
             if len(number) != 10 and len(number) != 0 and len(number.split(" ")) == 1:
-                problem_lines.append(i)
+                problem_lines.append(i +1)
     if problem_lines:
         error_output("NHS Number Format Error", "NHS number of unexpected length. Please ensure NHS numbers include 10 characters and no spaces", problem_lines)
 
-
-def check_date_formats(input_data):
+def check_dates(input_data):
     '''
-    Non-valid Date formats (must be DD/MM/YYYY)
+    Identifies fields with dates in them. Checks dates are of the format DD/MM/YYY.
+    Only checks formats - does not check dates are reasonable (no assumptions made about contents)
     '''
-    pass
+    date_fields = [field for field in FILE_FORMAT if "DATE" in field]
 
+    for date_field in date_fields:
+        problem_rows = []
+        for date_index in range(len(input_data)):
+            date = input_data[date_index][date_field]
+            if len(date) > 1: 
+                if not verify_date_format(date):
+                    problem_rows.append(date_index+1)
+        if problem_rows:
+            error_output("Date Format Error", "Invalid format for field {}. Date should be in the format DD/MM/YYYY".format(date_field), problem_rows)
+
+def check_vars(input_data):
+    '''
+    '''
+    error_dict = dict((el,[]) for el in FILE_FORMAT)
+    
+    for row_index in range(len(input_data)):
+        # "STUDY_ID", varchar(50)
+        if not verify_varchar(input_data[row_index]["STUDY_ID"], 50):
+            error_dict["STUDY_ID"].append(row_index + 1)
+        # "ROW_STATUS", char(1), [C,H]
+        if not verify_char(input_data[row_index]["ROW_STATUS"], ["C","H"]):
+            error_dict["ROW_STATUS"].append(row_index + 1)
+        # "SURNAME", varchar(255)
+        if not verify_varchar(input_data[row_index]["SURNAME"], 255):
+            error_dict["SURNAME"].append(row_index + 1)
+
+    "FORENAME",
+    "MIDDLENAMES",
+    "ADDRESS_1",
+    "ADDRESS_2",
+    "ADDRESS_3",
+    "ADDRESS_4",
+    "ADDRESS_5",
+    "POSTCODE",
+    "ADDRESS_START_DATE",
+    "ADDRESS_END_DATE",
+    "DATE_OF_BIRTH",
+    "GENDER_CD",
+    "CREATE_DATE",
+    "UKLLC_STATUS",
+    "NHS_E_Linkage_Permission",
+    "NHS_Digital_Study_Number",
+    "NHS_S_Linkage_Permission",
+    "NHS_S_Study_Number",
+    "NHS_W_Linkage_Permission",
+    "NHS_NI_Linkage_Permission",
+    "NHS_NI_Study_Number",
+    "Geocoding_Permission",
+    "ZoeSymptomTracker_Permission",
+    "Multiple_Birth",
+    "National_Opt_Out"
+    #handle NHS number separately (more requirements than other variables)
+    check_NHS_number(input_data)
 
 def check_out_of_range(input_data):
     '''
@@ -228,6 +305,7 @@ def content_checker(input_data):
     check_studyID(input_data)
     check_current_case(input_data)
     check_NHS_number(input_data)
+    check_dates(input_data)
 
 
 def error_output(error_type = "Error", message = "Unable to verify file", affected_lines = [] ):
@@ -267,7 +345,8 @@ if __name__ == "__main__":
     test_files = ["Good.csv","Good_unlabelled.csv","Bad_field_names.csv",
             "EXCEED_FILE1_v1_20210514.csv","UnderVals.csv","OverVals.csv",
             "StudyID_1.csv", "NullROW_STATUS_1.csv", "NullROW_STATUS_2.csv",
-            "bad_NHS_NUMBER.csv"]
+            "bad_NHS_NUMBER.csv", "bad_date_format1.csv", "bad_date_format2.csv",
+            "bad_date_format2.csv","bad_date_range.csv"]
 
     for filename in test_files:
         print("Testing file {}".format(filename))
@@ -278,33 +357,15 @@ if __name__ == "__main__":
     TODO list
     - Make check function:
         1.	Duplicate cases (STUDY_ID should be unique where ROW_STATUS="C") _/
-        2.	No current case (each STUDY_ID needs one row where ROW_STATUS="C")
-        3.	Non-valid variable names (note these are case sensitive in File 1)
-        4.	Missing variable names (against File 1 spec)
-        5.	Non-valid Date formats (must be DD/MM/YYYY)
+        2.	No current case (each STUDY_ID needs one row where ROW_STATUS="C") _/
+        3.	Non-valid variable names (note these are case sensitive in File 1) _/
+        4.	Missing variable names (against File 1 spec) _/
+        5.	Non-valid Date formats (must be DD/MM/YYYY) _/
         6.	Out of range values (for constrained fields)
         7.	Max 1024 variables per File (only applicable to File 2)
-        8.  Check expected number of columns (file 1)
-
-    - Make custom exception for "bad file"
-
-    - Make example bad files:
-        - Dupe Study_ID (where rows = c) _/ 
-        - Dupe Study_IDs (where only one of the dupe = c)
-        - Study_ID with no status = c
-        - ... bad variable names (require closer look at spec) 
-        - missing var names (one for each field ideally)
-        - Non-valid Date formats (test with a selection of fields)
-        - out of range vals (several checks for each bounded field)
-        - file with 1023 vars, 1024 vars, 1025 vars, 99999 vars
-        ....
-
-    - Output errors
-        - make txt file output + alert box?
-        - alert relevant to the error type and directions to fix.
+        8.  Check expected number of columns (file 1) _/
+        9.  check null entires are correct
     '''
-
-    
 
 '''
 Record of test files:
@@ -316,11 +377,17 @@ Record of test files:
         UnderVals.csv                   (unlabelled) Too few columns - should fail to input
         OverVals.csv                    (unlabelled) Too many columns - should fail to input
 
-
     - Content tests 
         Good.csv                All in order - should pass
         StudyID_1.csv           Line 6,7 studyID duplicated (and both lines ROW_STATUS = "c") - should fail, more than one row with C
         NullROW_STATUS_1.csv    Line 6,7 ROW_STATUS = "H" - should fail, no row with C
         NullROW_STATUS_2.csv    Lines 1,2 and 6,7 ROW_STATUS = "H" - should fail, 2 cases of no row with C
         bad_NHS_NUMBER.csv      line 3 contains spaces, line 6 too few characters - should fail twice
+
+        bad_date_format1.csv    Date of format YYYY/MM/DD in ADDRESS_START_DATE - should fail
+        bad_date_format2.csv    1 or 2 dates of format YYYY/MM/DD in every date field - should fail twice for each date field
+        bad_date_format3.csv    2 dates of format MM/DD/YYYY, one with day > 12, one with day <= 12 - should fail once, but unable to identify second
+        bad_date_range.csv      1 date of format DD/MM/YYYY where DD>31, 1 date of formate DD/MM/YYYY where MM>12 - should fail
+        - Note, not checking dates are reasonable, just checking format. eg, Date 01/01/1800 would be acceptable.
+
 '''
