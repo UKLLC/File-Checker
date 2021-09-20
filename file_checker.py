@@ -5,7 +5,8 @@ import csv
 import ctypes 
 from datetime import datetime
 import os
-
+import re
+import time
 
 FILE_FORMAT = [
     "STUDY_ID",
@@ -89,21 +90,30 @@ def load_unlabelled_file(filename):
     with open(filename) as csv_file:    
         csv_reader = csv.DictReader(csv_file, fieldnames = FILE_FORMAT, restkey="Overflow", restval="Underflow")
         line_count = 0
+
+        overflow = {}
+        underflow = {}
         for row in csv_reader:
             line_count += 1
             data.append(row)
             # Check if row contains expected number of variables
             if "Overflow" in row:
-                error_output("Format Error", "Unexpected number of fields. Expected {}, present {}.".format(len(FILE_FORMAT), len(row["Overflow"])+len(FILE_FORMAT)), str(line_count))
+                overflow[str(line_count)] = len(row["Overflow"])+len(FILE_FORMAT)
             if "Underflow" in row.values():
-                error_output("Format Error", "Unexpected number of fields. Expected {}, present {}.".format(len(FILE_FORMAT), len([item for item in row.values() if item != "Underflow"])), str(line_count))
+                underflow[str(line_count)] = len([item for item in row.values() if item != "Underflow"])+len(FILE_FORMAT)
 
         print(f'File contains {line_count} entries.')            
 
-    ''' Debugging
-    for item in data:
-        print(item)
-    '''
+        if overflow != {}:
+            lines = list(overflow.keys())
+            sizes = list(overflow.values())
+            error_output("Format Error", "Unexpected number of fields. Expected {}, present {}.".format(len(FILE_FORMAT), reduce_output_list(sizes)), lines)
+
+        if underflow != {}:
+            lines = list(underflow.keys())
+            sizes = list(underflow.values())
+            error_output("Format Error", "Unexpected number of fields. Expected {}, present {}.".format(len(FILE_FORMAT), reduce_output_list(sizes)), lines)
+
     return data
 
 def load_file(filename = False):
@@ -169,20 +179,19 @@ def verify_date_format(date):
     except ValueError:
         return False
     
-def verify_varchar(var, length):
+def verify_varchar(var, length, nullAllowed = True):
     '''
     Check variable (string) is of a certain length
     '''
-    if len(var) <= length:
+    if (len(var) <= length and len(var)>0) or (nullAllowed and len(var) == 0):
         return True
-    else:
-        return False
+    return False
 
-def verify_char(var, legal_chars = []):
+def verify_char(var, legal_chars = [], nullAllowed = True):
     '''
     Check variable is a character and of legal permutations
     '''
-    if len(var) == 1 and var in legal_chars:
+    if (len(var) == 1 and var in legal_chars) or (nullAllowed and len(var) == 0):
         return True
     else:
         return False 
@@ -198,7 +207,7 @@ def check_studyID(input_data):
         if studyIDs.count(id) > 1:
             problem_ids.append(id)
     if problem_ids:
-        error_output("Duplicate Current Record", "File contains multiple rows where ROW_STATUS = 'C' for STUDY_ID(s) {}.".format(set(problem_ids)))
+        error_output("Duplicate Current Record", "File contains multiple rows where ROW_STATUS = 'C' for STUDY_ID(s) {}.".format(reduce_output_list(list(set(problem_ids)))))
 
 def check_current_case(input_data):
     '''
@@ -207,9 +216,11 @@ def check_current_case(input_data):
     primary_studyIDs = [item["STUDY_ID"] for item in get_primary_rows(input_data)]
     all_studyIDs = set([row["STUDY_ID"] for row in input_data])
 
+    problem_ids = []
     for id in all_studyIDs:
         if id not in primary_studyIDs:
-            error_output("No Current Record", "File contains no current record for STUDY_ID {}".format(id))
+            problem_ids.append(id)
+    error_output("No Current Record", "File contains no current record for STUDY_ID(s) {}".format(reduce_output_list(list(set(problem_ids)))))
 
 def check_NHS_number(input_data):
     '''
@@ -226,6 +237,39 @@ def check_NHS_number(input_data):
                 problem_lines.append(i +1)
     if problem_lines:
         error_output("NHS Number Format Error", "NHS number of unexpected length. Please ensure NHS numbers include 10 characters and no spaces", problem_lines)
+
+def check_postcode(input_data):
+    '''
+    Check postcode is of one of three formats:
+        4 & 3 = “YYYY ZZZ”
+	    3 & 3 = “YYY  ZZZ”
+        2 & 3 = “YY   ZZZ”
+    '''
+    postcodes = [row["POSTCODE"] for row in input_data]
+    problem_lines = []
+    for i in range(len(postcodes)):
+        postcode = postcodes[i]
+        if postcode:
+            reduced_postcode = postcode.replace(" ", "")
+            if not len(reduced_postcode) == len(postcode)-1:
+                problem_lines.append(i + 1)
+            else:
+                #e.g. XX YYY
+                if len(postcode) == 6:
+                    pattern = re.compile("^[a-zA-Z]{1}[0-9]{2}[a-zA-Z]{2}")
+                #e.g. XXX YYY
+                elif len(postcode) == 7:
+                    pattern = re.compile("^[a-zA-Z]{2}[0-9]{2}[a-zA-Z]{2}")
+                #e.g. XXXX YYY
+                elif len(postcode) == 8:
+                    pattern = re.compile("^[a-zA-Z]{2}[0-9]{3}[a-zA-Z]{2}")
+
+                if not pattern.match(reduced_postcode):
+                    problem_lines.append(i + 1)
+
+    if problem_lines:
+        error_output("Postcode Format Error", "Postcode of unexpected format. Postcodes should be of the form 'YYYY ZZZ', 'YYY ZZZ' or 'YY ZZZ', including a space.", problem_lines)
+
 
 def check_dates(input_data):
     '''
@@ -251,48 +295,96 @@ def check_vars(input_data):
     
     for row_index in range(len(input_data)):
         # "STUDY_ID", varchar(50)
-        if not verify_varchar(input_data[row_index]["STUDY_ID"], 50):
+        if not verify_varchar(input_data[row_index]["STUDY_ID"], 50, nullAllowed=False):
             error_dict["STUDY_ID"].append(row_index + 1)
         # "ROW_STATUS", char(1), [C,H]
-        if not verify_char(input_data[row_index]["ROW_STATUS"], ["C","H"]):
+        if not verify_char(input_data[row_index]["ROW_STATUS"], ["C","H"], nullAllowed=False):
             error_dict["ROW_STATUS"].append(row_index + 1)
         # "SURNAME", varchar(255)
-        if not verify_varchar(input_data[row_index]["SURNAME"], 255):
+        if not verify_varchar(input_data[row_index]["SURNAME"], 255, nullAllowed=True):
             error_dict["SURNAME"].append(row_index + 1)
+        # "FORENAME", varchar(255)
+        if not verify_varchar(input_data[row_index]["FORENAME"], 255, nullAllowed=True):
+            error_dict["FORENAME"].append(row_index + 1)
+        # "MIDDLENAMES", varchar(255), (expecting a list of names, space deliminated)
+        if not verify_varchar(input_data[row_index]["MIDDLENAMES"], 255, nullAllowed=True):
+            error_dict["MIDDLENAMES"].append(row_index + 1)
+        # "ADDRESS_1", varchar("255")
+        if not verify_varchar(input_data[row_index]["ADDRESS_1"], 255, nullAllowed=True):
+            error_dict["ADDRESS_1"].append(row_index + 1)
+        # "ADDRESS_2", varchar("255")
+        if not verify_varchar(input_data[row_index]["ADDRESS_2"], 255, nullAllowed=True):
+            error_dict["ADDRESS_2"].append(row_index + 1)
+        # "ADDRESS_3", varchar("255")
+        if not verify_varchar(input_data[row_index]["ADDRESS_3"], 255, nullAllowed=True):
+            error_dict["ADDRESS_3"].append(row_index + 1)
+        # "ADDRESS_4", varchar("255")
+        if not verify_varchar(input_data[row_index]["ADDRESS_4"], 255, nullAllowed=True):
+            error_dict["ADDRESS_4"].append(row_index + 1)
+        # "ADDRESS_5", varchar("255")
+        if not verify_varchar(input_data[row_index]["ADDRESS_5"], 255, nullAllowed=True):
+            error_dict["ADDRESS_5"].append(row_index + 1)
+        # "ADDRESS_START_DATE", varchar("10")
+        if not verify_varchar(input_data[row_index]["ADDRESS_START_DATE"], 10, nullAllowed=True):
+            error_dict["ADDRESS_START_DATE"].append(row_index + 1)
+        # "ADDRESS_END_DATE", varchar("10")
+        if not verify_varchar(input_data[row_index]["ADDRESS_END_DATE"], 10, nullAllowed=True):
+            error_dict["ADDRESS_END_DATE"].append(row_index + 1)
+        # "DATE_OF_BIRTH", varchar("10")
+        if not verify_varchar(input_data[row_index]["DATE_OF_BIRTH"], 10, nullAllowed=True):
+            error_dict["DATE_OF_BIRTH"].append(row_index + 1)
+        # "GENDER_CD", char(1)
+        if not verify_char(input_data[row_index]["GENDER_CD"], ["1", "2", "7", "8", "9"], nullAllowed=True):
+            error_dict["GENDER_CD"].append(row_index + 1)
+        # "CREATE_DATE", varchar("10")
+        if not verify_varchar(input_data[row_index]["CREATE_DATE"], 10, nullAllowed=True):
+            error_dict["CREATE_DATE"].append(row_index + 1)
+        # "UKLLC_STATUS", char(1)
+        if not verify_char(input_data[row_index]["UKLLC_STATUS"], ["1", "0"], nullAllowed=True):
+            error_dict["UKLLC_STATUS"].append(row_index + 1)
+        # "NHS_E_Linkage_Permission", char(1)
+        if not verify_char(input_data[row_index]["NHS_E_Linkage_Permission"], ["1", "0"], nullAllowed=True):
+            error_dict["NHS_E_Linkage_Permission"].append(row_index + 1)
+        # "NHS_Digital_Study_Number", varchar(50)
+        if not verify_varchar(input_data[row_index]["NHS_Digital_Study_Number"], 50, nullAllowed=True):
+            error_dict["NHS_Digital_Study_Number"].append(row_index + 1)
+        # "NHS_S_Linkage_Permission", char(1)
+        if not verify_char(input_data[row_index]["NHS_S_Linkage_Permission"], ["1", "0"], nullAllowed=True):
+            error_dict["NHS_S_Linkage_Permission"].append(row_index + 1)
+        # "NHS_S_Study_Number", varchar(50)
+        if not verify_varchar(input_data[row_index]["NHS_S_Study_Number"], 50, nullAllowed=True):
+            error_dict["NHS_S_Study_Number"].append(row_index + 1)
+        # "NHS_W_Linkage_Permission", char(1)
+        if not verify_char(input_data[row_index]["NHS_W_Linkage_Permission"], ["1", "0"], nullAllowed=True):
+            error_dict["NHS_W_Linkage_Permission"].append(row_index + 1)
+        # "NHS_NI_Linkage_Permission", char(1)
+        if not verify_char(input_data[row_index]["NHS_NI_Linkage_Permission"], ["1", "0"], nullAllowed=True):
+            error_dict["NHS_NI_Linkage_Permission"].append(row_index + 1)
+        # "NHS_NI_Study_Number", varchar(50)
+        if not verify_varchar(input_data[row_index]["NHS_NI_Study_Number"], 50, nullAllowed=True):
+            error_dict["NHS_NI_Study_Number"].append(row_index + 1)
+        # "Geocoding_Permission", char(1)
+        if not verify_char(input_data[row_index]["Geocoding_Permission"], ["2","1", "0"], nullAllowed=True):
+            error_dict["Geocoding_Permission"].append(row_index + 1)
+        # "ZoeSymptomTracker_Permission", char(1)
+        if not verify_char(input_data[row_index]["ZoeSymptomTracker_Permission"], ["1", "0"], nullAllowed=True):
+            error_dict["ZoeSymptomTracker_Permission"].append(row_index + 1)
+        # "Multiple_Birth", char(1)
+        if not verify_char(input_data[row_index]["Multiple_Birth"], ["1", "0", "9"], nullAllowed=True):
+            error_dict["Multiple_Birth"].append(row_index + 1)
+        # "National_Opt_Out", char(1)
+        if not verify_char(input_data[row_index]["National_Opt_Out"], ["1", "0"], nullAllowed=True):
+            error_dict["National_Opt_Out"].append(row_index + 1)
 
-    "FORENAME",
-    "MIDDLENAMES",
-    "ADDRESS_1",
-    "ADDRESS_2",
-    "ADDRESS_3",
-    "ADDRESS_4",
-    "ADDRESS_5",
-    "POSTCODE",
-    "ADDRESS_START_DATE",
-    "ADDRESS_END_DATE",
-    "DATE_OF_BIRTH",
-    "GENDER_CD",
-    "CREATE_DATE",
-    "UKLLC_STATUS",
-    "NHS_E_Linkage_Permission",
-    "NHS_Digital_Study_Number",
-    "NHS_S_Linkage_Permission",
-    "NHS_S_Study_Number",
-    "NHS_W_Linkage_Permission",
-    "NHS_NI_Linkage_Permission",
-    "NHS_NI_Study_Number",
-    "Geocoding_Permission",
-    "ZoeSymptomTracker_Permission",
-    "Multiple_Birth",
-    "National_Opt_Out"
-    #handle NHS number separately (more requirements than other variables)
+    for key, value in error_dict.items():
+        if error_dict[key] != []:
+            error_output("Value Error",
+            "Invalid value for field {}. Please refer to the specification for correct field formatting guidelines.".format(key),
+            value)
+
+    #handle NHS number, postcode separately (more requirements than other variables)
     check_NHS_number(input_data)
-
-def check_out_of_range(input_data):
-    '''
-    Out of range values (for constrained fields)
-    '''
-    pass
+    check_postcode(input_data)
 
 
 def check_max_variables(input_data):
@@ -304,9 +396,18 @@ def check_max_variables(input_data):
 def content_checker(input_data):
     check_studyID(input_data)
     check_current_case(input_data)
-    check_NHS_number(input_data)
     check_dates(input_data)
+    check_vars(input_data)
 
+#----------------------------
+
+def reduce_output_list(lst):
+    '''
+    takes lists longer than 10 items and returns 10 items with an elipsis appended
+    '''
+    if len(lst) > 10:
+        return lst[:10].append("...")
+    return lst
 
 def error_output(error_type = "Error", message = "Unable to verify file", affected_lines = [] ):
     '''
@@ -314,12 +415,11 @@ def error_output(error_type = "Error", message = "Unable to verify file", affect
     Write txt ouptut of details
     '''
     if affected_lines: #if the list of affected lines is not null
-        if len(affected_lines) > 10:
-            affected_lines = (affected_lines[:10]).append("...")
-        message = message + "\nLine(s) "+ ", ".join(map(str,affected_lines))
+        message = message + "\nLine(s) "+ ", ".join(map(str,reduce_output_list(affected_lines)))
 
     message = message +"\n"
-    ctypes.windll.user32.MessageBoxW(0, message, error_type, 1)
+    # May or may not want to include message boxes. Potetentially not, unless outputs are cleaned up.
+    #ctypes.windll.user32.MessageBoxW(0, message, error_type, 1)
 
     curpath = os.path.abspath(os.curdir)
 
@@ -346,12 +446,15 @@ if __name__ == "__main__":
             "EXCEED_FILE1_v1_20210514.csv","UnderVals.csv","OverVals.csv",
             "StudyID_1.csv", "NullROW_STATUS_1.csv", "NullROW_STATUS_2.csv",
             "bad_NHS_NUMBER.csv", "bad_date_format1.csv", "bad_date_format2.csv",
-            "bad_date_format2.csv","bad_date_range.csv"]
+            "bad_date_format2.csv","bad_date_range.csv", "general_bad.csv",
+            "big_bad.csv"]
 
     for filename in test_files:
         print("Testing file {}".format(filename))
         STR_TIME = datetime.now().strftime("%H%M%S")+".txt"
+        start = time.time()
         input_data = load_file(filename)
+        print("Duration: ", start - time.time())
 
     '''
     TODO list
@@ -361,10 +464,12 @@ if __name__ == "__main__":
         3.	Non-valid variable names (note these are case sensitive in File 1) _/
         4.	Missing variable names (against File 1 spec) _/
         5.	Non-valid Date formats (must be DD/MM/YYYY) _/
-        6.	Out of range values (for constrained fields)
+        6.	Out of range values (for constrained fields) _/
         7.	Max 1024 variables per File (only applicable to File 2)
         8.  Check expected number of columns (file 1) _/
-        9.  check null entires are correct
+        9.  check null entires are correct _/
+        10. Check valid variable combinations: can only have a start date if have an address
+    - TODO make sure all ouputs are not line by line (too slow for big files)
     '''
 
 '''
@@ -390,4 +495,22 @@ Record of test files:
         bad_date_range.csv      1 date of format DD/MM/YYYY where DD>31, 1 date of formate DD/MM/YYYY where MM>12 - should fail
         - Note, not checking dates are reasonable, just checking format. eg, Date 01/01/1800 would be acceptable.
 
+        general_bad.csv         At least one invalid value per field (invalid by length or illegal characters) - should error at least once per field
+            STUDY_ID - 60 characters, null
+            ROW_STATUS - "CH", "D", null
+            NHS_NUMBER - "12345678901234567890", "123 1244 214"
+            SURNAME - 256 characters
+            FORENAME - ""
+            MIDDLENAME - ""
+            ADDRESS_1 (only) - 256+ characters
+            POSTCODE - "ABC 2BA", "ABCD 3DE", "A123 4DE", "AB1 23C", "AA 1BE"
+            ADDRESS_START_DATE - 01/01/20011
+            (Skip other dates)
+            GENDER_CD - "3", "a", "01"
+            UKLLC_STATUS - "00", "3", "a"
+            NHS_DIGITAL_STUDY_NUMBER - 51+ characters
+            GEOCODING PERMISSION - "3", "02", "a"
+
+    - Scalability check:
+        big_bad.csv     general_bad duplicated many times to make 100,000 rows
 '''

@@ -1,3 +1,0 @@
-Duplicate Current Record
-File contains multiple rows where ROW_STATUS = 'C' for STUDY_ID(s) {'UKLLC5'}.
---------------------
