@@ -1,4 +1,0 @@
-NHS Number Format Error
-NHS number of unexpected length. Please ensure NHS numbers include 10 characters and no spaces
-Line(s) 5
---------------------

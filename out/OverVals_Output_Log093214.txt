@@ -1,8 +1,0 @@
-Format Error
-Unexpected number of fields. Expected 29, present [31, 31, 31, 31, 31, 31].
-Line(s) 1, 2, 3, 4, 5, 6
---------------------
-Warning: field names not provided
-Column field names are not explicitly stated. Field name is assumed from position.
-Line(s) 0
---------------------

@@ -1,4 +1,0 @@
-Unrecognised field names
-Column field name(s) row_status, ADDRESS, DOB, NHS E_Linkage_Permission are not as expected. Unable to continue.
-Line(s) 0
---------------------

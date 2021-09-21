@@ -1,0 +1,6 @@
+File Naming Error
+Filename does not match the naming convention. Unknown study code.
+--------------------
+File Naming Error
+Filename does not match the naming convention. Should include FILE1 designation following study code.
+--------------------
