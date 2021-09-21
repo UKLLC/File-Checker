@@ -235,7 +235,7 @@ def check_filename(filename):
     study_code = filename_sections[0]
     file_1 = filename_sections[1]
     version = filename_sections[2]
-    creation_date = filename_sections[3]
+    creation_date = filename_sections[3].split(".")[0]
 
     if not study_code in UK_LLC_STUDY_CODES:
         error_output("File Naming Error", "Filename does not match the naming convention. Unknown study code.")
@@ -246,11 +246,11 @@ def check_filename(filename):
     version_format = re.compile("v[0-9]+")
     version_match = version_format.match(version)
     if not version_format.match(version) or len(version)!= version_match.end():
-        error_output("File Naming Error", "Filename does not match the naming convention. Should integer version number.")
+        error_output("File Naming Error", "Filename does not match the naming convention. Should include integer version number.")
 
     creation_date_format = re.compile("[0-9]{8}")
     if len(creation_date) != 8 or not creation_date_format.match(creation_date):
-        error_output("File Naming Error", "Filename does not match the naming convention. Should creation date in the format YYYYMMDD.")
+        error_output("File Naming Error", "Filename does not match the naming convention. Should include creation date in the format YYYYMMDD.")
 
 
 
@@ -544,4 +544,10 @@ Record of test files:
 
     - Scalability check:
         big_bad.csv     general_bad duplicated many times to make 100,000 rows
+        big_good.csv    good.csv duplicated to 100,000 rows
+
+    - Name scheme check:
+        EXCEED_FILE1_v1_20210514.csv        Example filename provided in specification - should pass      
+        EXCED_FILE2_v1.0_202105145.csv      Corruption of example. Every underscore separated section is incorrect in some way - should fail 4 times
+
 '''
