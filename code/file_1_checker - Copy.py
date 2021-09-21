@@ -6,8 +6,9 @@ import ctypes
 from datetime import datetime
 import os
 import re
-import time
 
+
+#TODO change constants to imported csv/tables for transparency - for github view.
 FILE_FORMAT = [
     "STUDY_ID",
     "ROW_STATUS",
@@ -40,6 +41,32 @@ FILE_FORMAT = [
     "National_Opt_Out"
 ]
 
+UK_LLC_STUDY_CODES = [
+    "ALSPAC",
+    "BCS70",
+    "BIB",
+    "COMPARE",
+    "COPING",
+    "ELSA",
+    "EXCEED",
+    "GENSCOT",
+    "GLAD",
+    "INTERVAL",
+    "MCS",
+    "NICOLA",
+    "NIHRBIO",
+    "NCDS58",
+    "NEXTSTEP",
+    "NSHD46",
+    "SABRE",
+    "STRIDES",
+    "TEDS",
+    "TRACKC19",
+    "TWINSUK",
+    "UKBB",
+    "UKHLS"
+]
+
 def file_dialog():
     '''
     Opens file dialog to find appropriate files
@@ -54,14 +81,9 @@ def file_dialog():
     
     filename = fd.askopenfilename(
         title='Open a file',
-        initialdir='/',
+        initialdir=os.getcwd(),
         filetypes=filetypes)
-    '''
-    showinfo(
-        title='Selected File',
-        message=filename
-    )
-    '''
+
     return filename
 
 
@@ -128,8 +150,10 @@ def load_file(filename = False):
         filename = file_dialog()
 
     global out_filename
-    out_filename = ("out\\{}_Output_Log".format(filename.split("\\")[-1].split(".")[0]))+STR_TIME
-    
+    out_filename = ("{}_Output_Log".format(os.path.split(filename)[1].split(".")[0]))+STR_TIME
+
+    #Check filename
+    check_filename(filename)
     try:
         with open(filename) as csv_file:
             csv_reader = csv.DictReader(csv_file)
@@ -196,6 +220,39 @@ def verify_char(var, legal_chars = [], nullAllowed = True):
         return False 
 
 #-------------------------------
+
+def check_filename(filename):
+    '''
+    Check filename abides by file 1 naming convention:
+    <UK LLC Study Code>_FILE1_”v” & <version number>_creation_dateYYYYMMDD>.csv
+    e.g., EXCEED_FILE1_v1_20210514.csv
+    '''
+    filename_sections = os.path.split(filename)[1].split("_")
+    if len(filename_sections) != 4:
+        error_output("File Naming Error", "Filename does not match the naming convention. Should include 4 underscore separated sections.")
+        return
+
+    study_code = filename_sections[0]
+    file_1 = filename_sections[1]
+    version = filename_sections[2]
+    creation_date = filename_sections[3]
+
+    if not study_code in UK_LLC_STUDY_CODES:
+        error_output("File Naming Error", "Filename does not match the naming convention. Unknown study code.")
+
+    if not file_1 == "FILE1":
+        error_output("File Naming Error", "Filename does not match the naming convention. Should include FILE1 designation following study code.")
+
+    version_format = re.compile("v[0-9]+")
+    version_match = version_format.match(version)
+    if not version_format.match(version) or len(version)!= version_match.end():
+        error_output("File Naming Error", "Filename does not match the naming convention. Should integer version number.")
+
+    creation_date_format = re.compile("[0-9]{8}")
+    if len(creation_date) != 8 or not creation_date_format.match(creation_date):
+        error_output("File Naming Error", "Filename does not match the naming convention. Should creation date in the format YYYYMMDD.")
+
+
 
 def check_studyID(input_data):
     '''
@@ -388,17 +445,17 @@ def check_vars(input_data):
     check_postcode(input_data)
 
 
-def check_max_variables(input_data):
-    '''
-    Max 1024 variables per File (only applicable to File 2)
-    '''
-    pass
-
 def content_checker(input_data):
     check_studyID(input_data)
     check_current_case(input_data)
     check_dates(input_data)
     check_vars(input_data)
+
+    #If no errors logged
+    if not os.path.exists(out_filename):
+        f = open( out_filename, "w")
+        f.write("File passed all checks.")
+
 
 #----------------------------
 
@@ -438,40 +495,13 @@ def error_output(error_type = "Error", message = "Unable to verify file", affect
 
 
 if __name__ == "__main__":
-    # TODO - uncomment and remove debugging loop
-    #STR_TIME = datetime.now().strftime("%H%M%S")+".txt"
 
-    # Debugging:
-    # List test cases to run sequentially (avoids file dialog for sake of speed)
-    test_files = ["Good.csv","Good_unlabelled.csv","Bad_field_names.csv",
-            "EXCEED_FILE1_v1_20210514.csv","UnderVals.csv","OverVals.csv",
-            "StudyID_1.csv", "NullROW_STATUS_1.csv", "NullROW_STATUS_2.csv",
-            "bad_NHS_NUMBER.csv", "bad_date_format1.csv", "bad_date_format2.csv",
-            "bad_date_format2.csv","bad_date_range.csv", "general_bad.csv",
-            "big_bad.csv", "big_good.csv"]
+    STR_TIME = datetime.now().strftime("%H%M%S")+".txt"
 
-    for filename in test_files:
-        print("Testing file {}".format(filename))
-        STR_TIME = datetime.now().strftime("%H%M%S")+".txt"
-        start = time.time()
-        input_data = load_file(filename)
-        print("Duration: ", time.time() - start)
+    input_data = load_file()
 
-    '''
-    TODO list
-    - Make check function:
-        1.	Duplicate cases (STUDY_ID should be unique where ROW_STATUS="C") _/
-        2.	No current case (each STUDY_ID needs one row where ROW_STATUS="C") _/
-        3.	Non-valid variable names (note these are case sensitive in File 1) _/
-        4.	Missing variable names (against File 1 spec) _/
-        5.	Non-valid Date formats (must be DD/MM/YYYY) _/
-        6.	Out of range values (for constrained fields) _/
-        7.	Max 1024 variables per File (only applicable to File 2)
-        8.  Check expected number of columns (file 1) _/
-        9.  check null entires are correct _/
-        10. Check valid variable combinations: can only have a start date if have an address
-    - TODO make sure all ouputs are not line by line (too slow for big files)
-    '''
+
+
 
 '''
 Record of test files:

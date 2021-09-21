@@ -244,11 +244,12 @@ def check_filename(filename):
         error_output("File Naming Error", "Filename does not match the naming convention. Should include FILE1 designation following study code.")
 
     version_format = re.compile("v[0-9]+")
-    if not version_format.match(version):
+    version_match = version_format.match(version)
+    if not version_format.match(version) or len(version)!= version_match.end():
         error_output("File Naming Error", "Filename does not match the naming convention. Should integer version number.")
 
     creation_date_format = re.compile("[0-9]{8}")
-    if not creation_date_format.match(creation_date):
+    if len(creation_date) != 8 or not creation_date_format.match(creation_date):
         error_output("File Naming Error", "Filename does not match the naming convention. Should creation date in the format YYYYMMDD.")
 
 
@@ -443,12 +444,6 @@ def check_vars(input_data):
     check_NHS_number(input_data)
     check_postcode(input_data)
 
-
-def check_max_variables(input_data):
-    '''
-    Max 1024 variables per File (only applicable to File 2)
-    '''
-    pass
 
 def content_checker(input_data):
     check_studyID(input_data)
