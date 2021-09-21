@@ -1,7 +1,0 @@
-No Current Record
-File contains no current record for STUDY_ID(s) []
---------------------
-NHS Number Format Error
-NHS number of unexpected length. Please ensure NHS numbers include 10 characters and no spaces
-Line(s) 5
---------------------

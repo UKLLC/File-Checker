@@ -148,7 +148,6 @@ def load_file(filename = False):
 
             # 3. Some headers are the same (ie some column names have likely been misnamed)
             else:
-                print(len(difference), len(FILE_FORMAT), len(headers))
                 error_output("Unrecognised field names", "Column field name(s) {} are not as expected. Unable to continue.".format(", ".join(difference)), [0])
                 # Do not continue program
                 return
@@ -196,6 +195,7 @@ def verify_char(var, legal_chars = [], nullAllowed = True):
     else:
         return False 
 
+#-------------------------------
 
 def check_studyID(input_data):
     '''
@@ -206,7 +206,7 @@ def check_studyID(input_data):
     for id in studyIDs:
         if studyIDs.count(id) > 1:
             problem_ids.append(id)
-    if problem_ids:
+    if problem_ids != []:
         error_output("Duplicate Current Record", "File contains multiple rows where ROW_STATUS = 'C' for STUDY_ID(s) {}.".format(reduce_output_list(list(set(problem_ids)))))
 
 def check_current_case(input_data):
@@ -220,7 +220,8 @@ def check_current_case(input_data):
     for id in all_studyIDs:
         if id not in primary_studyIDs:
             problem_ids.append(id)
-    error_output("No Current Record", "File contains no current record for STUDY_ID(s) {}".format(reduce_output_list(list(set(problem_ids)))))
+    if problem_ids != []:
+        error_output("No Current Record", "File contains no current record for STUDY_ID(s) {}".format(reduce_output_list(list(set(problem_ids)))))
 
 def check_NHS_number(input_data):
     '''
@@ -235,7 +236,7 @@ def check_NHS_number(input_data):
         if number:
             if len(number) != 10 and len(number) != 0 and len(number.split(" ")) == 1:
                 problem_lines.append(i +1)
-    if problem_lines:
+    if problem_lines != []:
         error_output("NHS Number Format Error", "NHS number of unexpected length. Please ensure NHS numbers include 10 characters and no spaces", problem_lines)
 
 def check_postcode(input_data):
@@ -267,9 +268,8 @@ def check_postcode(input_data):
                 if not pattern.match(reduced_postcode):
                     problem_lines.append(i + 1)
 
-    if problem_lines:
+    if problem_lines != []:
         error_output("Postcode Format Error", "Postcode of unexpected format. Postcodes should be of the form 'YYYY ZZZ', 'YYY ZZZ' or 'YY ZZZ', including a space.", problem_lines)
-
 
 def check_dates(input_data):
     '''
@@ -285,11 +285,12 @@ def check_dates(input_data):
             if len(date) > 1: 
                 if not verify_date_format(date):
                     problem_rows.append(date_index+1)
-        if problem_rows:
+        if problem_rows != []:
             error_output("Date Format Error", "Invalid format for field {}. Date should be in the format DD/MM/YYYY".format(date_field), problem_rows)
 
 def check_vars(input_data):
     '''
+    Check data type for at least one example of every variable constraint 
     '''
     error_dict = dict((el,[]) for el in FILE_FORMAT)
     
@@ -406,7 +407,7 @@ def reduce_output_list(lst):
     takes lists longer than 10 items and returns 10 items with an elipsis appended
     '''
     if len(lst) > 10:
-        return lst[:10].append("...")
+        return lst[:10] + ["..."]
     return lst
 
 def error_output(error_type = "Error", message = "Unable to verify file", affected_lines = [] ):
@@ -414,7 +415,7 @@ def error_output(error_type = "Error", message = "Unable to verify file", affect
     Create dialog window for error processing file
     Write txt ouptut of details
     '''
-    if affected_lines: #if the list of affected lines is not null
+    if affected_lines != []: #if the list of affected lines is not null
         message = message + "\nLine(s) "+ ", ".join(map(str,reduce_output_list(affected_lines)))
 
     message = message +"\n"
@@ -447,14 +448,14 @@ if __name__ == "__main__":
             "StudyID_1.csv", "NullROW_STATUS_1.csv", "NullROW_STATUS_2.csv",
             "bad_NHS_NUMBER.csv", "bad_date_format1.csv", "bad_date_format2.csv",
             "bad_date_format2.csv","bad_date_range.csv", "general_bad.csv",
-            "big_bad.csv"]
+            "big_bad.csv", "big_good.csv"]
 
     for filename in test_files:
         print("Testing file {}".format(filename))
         STR_TIME = datetime.now().strftime("%H%M%S")+".txt"
         start = time.time()
         input_data = load_file(filename)
-        print("Duration: ", start - time.time())
+        print("Duration: ", time.time() - start)
 
     '''
     TODO list
