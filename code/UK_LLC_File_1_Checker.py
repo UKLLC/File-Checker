@@ -1,90 +1,10 @@
 from tkinter import *
-from tkinter import filedialog as fd
-from tkinter.messagebox import showinfo
 import csv
-import ctypes 
 from datetime import datetime
 import os
 import re
-
-
-#TODO change constants to imported csv/tables for transparency - for github view.
-FILE_FORMAT = [
-    "STUDY_ID",
-    "ROW_STATUS",
-    "NHS_NUMBER",
-    "SURNAME",
-    "FORENAME",
-    "MIDDLENAMES",
-    "ADDRESS_1",
-    "ADDRESS_2",
-    "ADDRESS_3",
-    "ADDRESS_4",
-    "ADDRESS_5",
-    "POSTCODE",
-    "ADDRESS_START_DATE",
-    "ADDRESS_END_DATE",
-    "DATE_OF_BIRTH",
-    "GENDER_CD",
-    "CREATE_DATE",
-    "UKLLC_STATUS",
-    "NHS_E_Linkage_Permission",
-    "NHS_Digital_Study_Number",
-    "NHS_S_Linkage_Permission",
-    "NHS_S_Study_Number",
-    "NHS_W_Linkage_Permission",
-    "NHS_NI_Linkage_Permission",
-    "NHS_NI_Study_Number",
-    "Geocoding_Permission",
-    "ZoeSymptomTracker_Permission",
-    "Multiple_Birth",
-    "National_Opt_Out"
-]
-
-UK_LLC_STUDY_CODES = [
-    "ALSPAC",
-    "BCS70",
-    "BIB",
-    "COMPARE",
-    "COPING",
-    "ELSA",
-    "EXCEED",
-    "GENSCOT",
-    "GLAD",
-    "INTERVAL",
-    "MCS",
-    "NICOLA",
-    "NIHRBIO",
-    "NCDS58",
-    "NEXTSTEP",
-    "NSHD46",
-    "SABRE",
-    "STRIDES",
-    "TEDS",
-    "TRACKC19",
-    "TWINSUK",
-    "UKBB",
-    "UKHLS"
-]
-
-def file_dialog():
-    '''
-    Opens file dialog to find appropriate files
-    '''
-    root = Tk()
-    root.withdraw()
-    
-    filetypes = (
-        ('text files', '*.txt'),
-        ('csv files', '*.csv')
-    )
-    
-    filename = fd.askopenfilename(
-        title='Open a file',
-        initialdir=os.getcwd(),
-        filetypes=filetypes)
-
-    return filename
+import constants
+import shared_functions as sf
 
 
 def load_labelled_file(filename):
@@ -99,8 +19,8 @@ def load_labelled_file(filename):
             line_count += 1
             data.append(row)
 
-        if not list(row.keys()) == FILE_FORMAT:
-            error_output("Unexpected Field Order", "Fields are correctly named, but appear in the wrong order. Please refer to the specification for the proper order.")
+        if not list(row.keys()) == constants.FILE_FORMAT:
+            sf.error_output(out_filename, "Unexpected Field Order", "Fields are correctly named, but appear in the wrong order. Please refer to the specification for the proper order.")
 
         print(f'File contains {line_count} entries.')            
 
@@ -113,7 +33,7 @@ def load_unlabelled_file(filename):
     '''
     data = [] # setup to store csv contents as list of dictionaries
     with open(filename) as csv_file:    
-        csv_reader = csv.DictReader(csv_file, fieldnames = FILE_FORMAT, restkey="Overflow", restval="Underflow")
+        csv_reader = csv.DictReader(csv_file, fieldnames = constants.FILE_FORMAT, restkey="Overflow", restval="Underflow")
         line_count = 0
 
         overflow = {}
@@ -123,21 +43,23 @@ def load_unlabelled_file(filename):
             data.append(row)
             # Check if row contains expected number of variables
             if "Overflow" in row:
-                overflow[str(line_count)] = len(row["Overflow"])+len(FILE_FORMAT)
+                overflow[str(line_count)] = len(row["Overflow"])+len(constants.FILE_FORMAT)
             if "Underflow" in row.values():
-                underflow[str(line_count)] = len([item for item in row.values() if item != "Underflow"])+len(FILE_FORMAT)
+                underflow[str(line_count)] = len([item for item in row.values() if item != "Underflow"])+len(constants.FILE_FORMAT)
 
         print(f'File contains {line_count} entries.')            
 
         if overflow != {}:
             lines = list(overflow.keys())
             sizes = list(overflow.values())
-            error_output("Format Error", "Unexpected number of fields. Expected {}, present {}.".format(len(FILE_FORMAT), reduce_output_list(sizes)), lines)
+            sf.error_output(out_filename, "Format Error", "Unexpected number of fields. Expected {}, present {}.".format(len(constants.FILE_FORMAT),
+                sf.reduce_output_list(sizes)), lines)
 
         if underflow != {}:
             lines = list(underflow.keys())
             sizes = list(underflow.values())
-            error_output("Format Error", "Unexpected number of fields. Expected {}, present {}.".format(len(FILE_FORMAT), reduce_output_list(sizes)), lines)
+            sf.error_output(out_filename, "Format Error", "Unexpected number of fields. Expected {}, present {}.".format(len(constants.FILE_FORMAT),
+                sf.reduce_output_list(sizes)), lines)
 
     return data
 
@@ -151,7 +73,7 @@ def load_file(filename = False):
     '''
     print("Opening file dialog")
     if not filename: # if filename has not been passed (would only be for debugging/testing)
-        filename = file_dialog()
+        filename = sf.file_dialog()
 
     global out_filename
     out_filename = ("{}_Output_Log".format(os.path.split(filename)[1].split(".")[0]))+STR_TIME
@@ -165,8 +87,8 @@ def load_file(filename = False):
             headers = csv_reader.fieldnames
 
             # 1. All headers are the same
-            difference = [x for x in headers if x not in FILE_FORMAT]
-            if difference == [] and len(headers) == len(FILE_FORMAT):
+            difference = [x for x in headers if x not in constants.FILE_FORMAT]
+            if difference == [] and len(headers) == len(constants.FILE_FORMAT):
                 data = load_labelled_file(filename)
 
             # 2. No headers are the same (ie column names not included)
@@ -174,18 +96,18 @@ def load_file(filename = False):
                 print("Field names not included")
                 data = load_unlabelled_file(filename)
                 print("Warning: field names not provided")
-                error_output("Warning: field names not provided", "Column field names are not explicitly stated. Field name is assumed from position.", [0])
+                sf.error_output(out_filename, "Warning: field names not provided", "Column field names are not explicitly stated. Field name is assumed from position.", [0])
 
             # 3. Some headers are the same (ie some column names have likely been misnamed)
             else:
                 print("Unrecognised field names")
-                error_output("Unrecognised field names", "Column field name(s) {} are not as expected. Unable to continue.".format(", ".join(difference)), [0])
+                sf.error_output(out_filename, "Unrecognised field names", "Column field name(s) {} are not as expected. Unable to continue.".format(", ".join(difference)), [0])
                 # Do not continue program
                 return
 
     except OSError as e:
         print("Unable to read file")
-        error_output("Load Error", "Unable to read file")
+        sf.error_output(out_filename, "Load Error", "Unable to read file")
         return
 
     content_checker(data)
@@ -199,16 +121,6 @@ def get_primary_rows(input_data):
     '''
     return [row for row in input_data if row["ROW_STATUS"].lower() == "c"] 
 
-def verify_date_format(date):
-    '''
-    Non-valid Date formats (must be DD/MM/YYYY)
-    '''
-    date_format = '%d/%m/%Y'
-    try:
-        date_obj = datetime.strptime(date, date_format)
-        return True
-    except ValueError:
-        return False
     
 def verify_varchar(var, length, nullAllowed = True):
     '''
@@ -238,7 +150,7 @@ def check_filename(filename):
     print("Checking filename")
     filename_sections = os.path.split(filename)[1].split("_")
     if len(filename_sections) != 4:
-        error_output("File Naming Error", "Filename does not match the naming convention. Should include 4 underscore separated sections.")
+        sf.error_output(out_filename, "File Naming Error", "Filename does not match the naming convention. Should include 4 underscore separated sections.")
         return
 
     study_code = filename_sections[0]
@@ -246,20 +158,20 @@ def check_filename(filename):
     version = filename_sections[2]
     creation_date = filename_sections[3].split(".")[0]
 
-    if not study_code in UK_LLC_STUDY_CODES:
-        error_output("File Naming Error", "Filename does not match the naming convention. Unknown study code.")
+    if not study_code in constants.UK_LLC_STUDY_CODES:
+        sf.error_output(out_filename, "File Naming Error", "Filename does not match the naming convention. Unknown study code.")
 
     if not file_1 == "FILE1":
-        error_output("File Naming Error", "Filename does not match the naming convention. Should include FILE1 designation following study code.")
+        sf.error_output(out_filename, "File Naming Error", "Filename does not match the naming convention. Should include FILE1 designation following study code.")
 
     version_format = re.compile("v[0-9]+")
     version_match = version_format.match(version)
     if not version_format.match(version) or len(version)!= version_match.end():
-        error_output("File Naming Error", "Filename does not match the naming convention. Should include integer version number.")
+        sf.error_output(out_filename, "File Naming Error", "Filename does not match the naming convention. Should include integer version number.")
 
     creation_date_format = re.compile("[0-9]{8}")
-    if len(creation_date) != 8 or not creation_date_format.match(creation_date):
-        error_output("File Naming Error", "Filename does not match the naming convention. Should include creation date in the format YYYYMMDD.")
+    if len(creation_date) != 8 or not creation_date_format.match(creation_date) or not sf.verify_date_format(creation_date):
+        sf.error_output(out_filename, "File Naming Error", "Filename does not match the naming convention. Should include creation date in the format YYYYMMDD.")
 
 
 
@@ -274,7 +186,7 @@ def check_studyID(input_data):
         if studyIDs.count(id) > 1:
             problem_ids.append(id)
     if problem_ids != []:
-        error_output("Duplicate Current Record", "File contains multiple rows where ROW_STATUS = 'C' for STUDY_ID(s) {}.".format(reduce_output_list(list(set(problem_ids)))))
+        sf.error_output(out_filename, "Duplicate Current Record", "File contains multiple rows where ROW_STATUS = 'C' for STUDY_ID(s) {}.".format(sf.reduce_output_list(list(set(problem_ids)))))
 
 def check_current_case(input_data):
     '''
@@ -288,7 +200,7 @@ def check_current_case(input_data):
         if id not in primary_studyIDs:
             problem_ids.append(id)
     if problem_ids != []:
-        error_output("No Current Record", "File contains no current record for STUDY_ID(s) {}".format(reduce_output_list(list(set(problem_ids)))))
+        sf.error_output(out_filename, "No Current Record", "File contains no current record for STUDY_ID(s) {}".format(sf.reduce_output_list(list(set(problem_ids)))))
 
 def check_NHS_number(input_data):
     '''
@@ -305,7 +217,7 @@ def check_NHS_number(input_data):
             if len(number) != 10 and len(number) != 0 and len(number.split(" ")) == 1:
                 problem_lines.append(i +1)
     if problem_lines != []:
-        error_output("NHS Number Format Error", "NHS number of unexpected length. Please ensure NHS numbers include 10 characters and no spaces", problem_lines)
+        sf.error_output(out_filename, "NHS Number Format Error", "NHS number of unexpected length. Please ensure NHS numbers include 10 characters and no spaces", problem_lines)
 
 def check_postcode(input_data):
     '''
@@ -338,7 +250,7 @@ def check_postcode(input_data):
                     problem_lines.append(i + 1)
 
     if problem_lines != []:
-        error_output("Postcode Format Error", "Postcode of unexpected format. Postcodes should be of the form 'YYYY ZZZ', 'YYY ZZZ' or 'YY ZZZ', including a space.", problem_lines)
+        sf.error_output(out_filename, "Postcode Format Error", "Postcode of unexpected format. Postcodes should be of the form 'YYYY ZZZ', 'YYY ZZZ' or 'YY ZZZ', including a space.", problem_lines)
 
 def check_dates(input_data):
     '''
@@ -346,24 +258,24 @@ def check_dates(input_data):
     Only checks formats - does not check dates are reasonable (no assumptions made about contents)
     '''
     print("Checking date fields")
-    date_fields = [field for field in FILE_FORMAT if "DATE" in field]
+    date_fields = [field for field in constants.FILE_FORMAT if "DATE" in field]
 
     for date_field in date_fields:
         problem_rows = []
         for date_index in range(len(input_data)):
             date = input_data[date_index][date_field]
             if len(date) > 1: 
-                if not verify_date_format(date):
+                if not sf.verify_date_format(date):
                     problem_rows.append(date_index+1)
         if problem_rows != []:
-            error_output("Date Format Error", "Invalid format for field {}. Date should be in the format DD/MM/YYYY".format(date_field), problem_rows)
+            sf.error_output(out_filename, "Date Format Error", "Invalid format for field {}. Date should be in the format DD/MM/YYYY".format(date_field), problem_rows)
 
 def check_vars(input_data):
     '''
     Check data type for at least one example of every variable constraint 
     '''
     print("Checking field value constraints")
-    error_dict = dict((el,[]) for el in FILE_FORMAT)
+    error_dict = dict((el,[]) for el in constants.FILE_FORMAT)
     
     for row_index in range(len(input_data)):
         # "STUDY_ID", varchar(50)
@@ -450,7 +362,7 @@ def check_vars(input_data):
 
     for key, value in error_dict.items():
         if error_dict[key] != []:
-            error_output("Value Error",
+            sf.error_output(out_filename, "Value Error",
             "Invalid value for field {}. Please refer to the specification for correct field formatting guidelines.".format(key),
             value)
 
@@ -471,49 +383,12 @@ def content_checker(input_data):
         f.write("File passed all checks.")
 
 
-#----------------------------
-
-def reduce_output_list(lst):
-    '''
-    takes lists longer than 10 items and returns 10 items with an elipsis appended
-    '''
-    if len(lst) > 10:
-        return lst[:10] + ["..."]
-    return lst
-
-def error_output(error_type = "Error", message = "Unable to verify file", affected_lines = [] ):
-    '''
-    Create dialog window for error processing file
-    Write txt ouptut of details
-    '''
-    if affected_lines != []: #if the list of affected lines is not null
-        message = message + "\nLine(s) "+ ", ".join(map(str,reduce_output_list(affected_lines)))
-
-    message = message +"\n"
-    # May or may not want to include message boxes. Potetentially not, unless outputs are cleaned up.
-    #ctypes.windll.user32.MessageBoxW(0, message, error_type, 1)
-
-    curpath = os.path.abspath(os.curdir)
-
-    if not os.path.exists(out_filename):
-        open(out_filename, "w")
-
-    f = open( out_filename, "a")
-
-
-    f.write(error_type)
-    f.write("\n")
-    f.write(message)
-    f.write("--------------------\n")
-    f.close()
-
 
 if __name__ == "__main__":
 
     STR_TIME = datetime.now().strftime("%H%M%S")+".txt"
 
     input_data = load_file()
-
 
 
 
@@ -566,6 +441,3 @@ Record of test files:
         EXCED_FILE2_v1.0_202105145.csv      Corruption of example. Every underscore separated section is incorrect in some way - should fail 4 times
 
 '''
-
-# Check column name order - must be in order
-# executatble a series barrier - demo a way to run from console
