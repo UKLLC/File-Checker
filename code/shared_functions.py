@@ -22,11 +22,22 @@ def file_dialog():
 
     return filename
 
-def verify_date_format(date):
+def verify_date_format_DDMMYYYY(date):
     '''
     Non-valid Date formats (must be DD/MM/YYYY)
     '''
     date_format = '%d/%m/%Y'
+    try:
+        date_obj = datetime.strptime(date, date_format)
+        return True
+    except ValueError:
+        return False
+
+def verify_date_format_YYYYMMDD(date):
+    '''
+    Non-valid Date formats (must be YYYY/MM/DD)
+    '''
+    date_format = '%Y%m%d'
     try:
         date_obj = datetime.strptime(date, date_format)
         return True

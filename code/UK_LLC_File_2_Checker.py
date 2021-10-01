@@ -76,7 +76,7 @@ def check_filename(filename):
         sf.error_output(out_filename,"File Naming Error", "Filename does not match the naming convention. Should include 4 digit integer version number.")
 
     creation_date_format = re.compile("[0-9]{8}")
-    if len(creation_date) != 8 or not creation_date_format.match(creation_date) or sf.verify_date_format(creation_date):
+    if len(creation_date) != 8 or not creation_date_format.match(creation_date) or sf.verify_date_format_YYYYMMDD(creation_date):
         sf.error_output(out_filename,"File Naming Error", "Filename does not match the naming convention. Should include creation date in the format YYYYMMDD.")
 
 
