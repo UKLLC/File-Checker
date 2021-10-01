@@ -99,6 +99,9 @@ def load_labelled_file(filename):
             line_count += 1
             data.append(row)
 
+        if not list(row.keys()) == FILE_FORMAT:
+            error_output("Unexpected Field Order", "Fields are correctly named, but appear in the wrong order. Please refer to the specification for the proper order.")
+
         print(f'File contains {line_count} entries.')            
 
     return data
@@ -523,6 +526,7 @@ Record of test files:
         EXCEED_FILE1_v1_20210514.csv    Proper file name - should be only file to pass with no errors (others will log errors from bad file name)
         UnderVals.csv                   (unlabelled) Too few columns - should fail to input
         OverVals.csv                    (unlabelled) Too many columns - should fail to input
+        WrongFieldOrder.csv             Surname and Forename are interchanged - should error
 
     - Content tests 
         Good.csv                All in order - should pass
@@ -562,3 +566,6 @@ Record of test files:
         EXCED_FILE2_v1.0_202105145.csv      Corruption of example. Every underscore separated section is incorrect in some way - should fail 4 times
 
 '''
+
+# Check column name order - must be in order
+# executatble a series barrier - demo a way to run from console
