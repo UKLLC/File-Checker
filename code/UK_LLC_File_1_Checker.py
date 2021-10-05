@@ -110,6 +110,8 @@ def load_file(filename = False):
         sf.error_output(out_filename, "Load Error", "Unable to read file")
         return
 
+    data = sf.handle_Nones(data, out_filename)
+
     content_checker(data)
 
 # ------------------------------------- 
@@ -402,6 +404,8 @@ Record of test files:
         UnderVals.csv                   (unlabelled) Too few columns - should fail to input
         OverVals.csv                    (unlabelled) Too many columns - should fail to input
         WrongFieldOrder.csv             Surname and Forename are interchanged - should error
+        Good_quotes.csv                 correct in format, but vals are marked with quotation (plausible legal format) - should pass
+        Good_quotes_short.csv           One line is short (does not have a val for every column) - should warning
 
     - Content tests 
         Good.csv                All in order - should pass

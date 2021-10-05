@@ -53,6 +53,21 @@ def reduce_output_list(lst):
         return lst[:10] + ["..."]
     return lst
 
+def handle_Nones(data, outfile):
+    '''
+    Note if values are None and replace (for further checking)
+    '''
+    problem_lines = []
+    for line in range(len(data)):
+        for key, val in dict(data[line]).items():
+            if val == None:
+                data[line][key] = ""
+                problem_lines.append(line)
+    if len(problem_lines) > 0:
+
+        error_output(outfile, "Warning: None value(s) in data", "None values should be represented by empty string ''. This warning could be indicative of short rows.", problem_lines)
+    return data
+
 
 def error_output(out_filename, error_type = "Error", message = "Unable to verify file", affected_lines = [] ):
     '''
