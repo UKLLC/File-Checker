@@ -216,10 +216,12 @@ def check_NHS_number(input_data):
     for i in range(len(NHS_numbers)):
         number = NHS_numbers[i]
         if number:
-            if len(number) != 10 and len(number) != 0 and len(number.split(" ")) == 1:
-                problem_lines.append(i +1)
+            if len(number) != 0:
+                if len(number) > 10 and len(number.split(" ")) > 1:
+                    problem_lines.append(i +1)
+
     if problem_lines != []:
-        sf.error_output(out_filename, "NHS Number Format Error", "NHS number of unexpected length. Please ensure NHS numbers include 10 characters and no spaces", problem_lines)
+        sf.error_output(out_filename, "NHS Number Format Error", "Please ensure NHS numbers include 10 or fewer characters and no spaces", problem_lines)
 
 def check_postcode(input_data):
     '''
@@ -243,16 +245,26 @@ def check_postcode(input_data):
                     pattern = re.compile("^[a-zA-Z]{1}[0-9]{2}[a-zA-Z]{2}")
                 #e.g. XXX YYY
                 elif len(postcode) == 7:
-                    pattern = re.compile("^[a-zA-Z]{2}[0-9]{2}[a-zA-Z]{2}")
+                    pattern = re.compile("^[a-zA-Z]{2}[0-9]{2}[a-zA-Z]{2}|[a-zA-Z]{1}[0-9]{3}[a-zA-Z]{2}")
                 #e.g. XXXX YYY
                 elif len(postcode) == 8:
                     pattern = re.compile("^[a-zA-Z]{2}[0-9]{3}[a-zA-Z]{2}")
+                
+                #e.g. XXX
+                elif len(postcode) == 3:
+                    pattern = re.compile("^[a-zA-Z]{1}[0-9]{1}")
+                #e.g. XXXX
+                elif len(postcode) == 4:
+                    pattern = re.compile("^[a-zA-Z]{2}[0-9]{2}")
+                #e.g. XX
+                elif len(postcode) == 2:
+                    pattern = re.compile("^[a-zA-Z]{2}[0-9]{3}")
 
                 if not pattern.match(reduced_postcode):
                     problem_lines.append(i + 1)
 
     if problem_lines != []:
-        sf.error_output(out_filename, "Postcode Format Error", "Postcode of unexpected format. Postcodes should be of the form 'YYYY ZZZ', 'YYY ZZZ' or 'YY ZZZ', including a space.", problem_lines)
+        sf.error_output(out_filename, "Postcode Format Warning", "Postcode of unexpected format. British postcodes should be of the form 'YYYY ZZZ', 'YYY ZZZ' or 'YY ZZZ', including a space. Ignore this warning if it is caused by a foreign postcode.", problem_lines)
 
 def check_dates(input_data):
     '''
