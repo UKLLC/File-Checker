@@ -15,14 +15,17 @@ def load_labelled_file(filename):
     with open(filename) as csv_file:    
         csv_reader = csv.DictReader(csv_file)
         line_count = 0
-        for row in csv_reader:
-            line_count += 1
-            data.append(row)
+        try:
+            for row in csv_reader:
+                line_count += 1
+                data.append(row)
 
-        if not list(row.keys()) == constants.FILE_FORMAT:
-            sf.error_output(out_filename, "Unexpected Field Order", "Fields are correctly named, but appear in the wrong order. Please refer to the specification for the proper order.")
-
-        print(f'File contains {line_count} entries.')            
+            if not list(row.keys()) == constants.FILE_FORMAT:
+                sf.error_output(out_filename, "Unexpected Field Order", "Fields are correctly named, but appear in the wrong order. Please refer to the specification for the proper order.")
+            
+            print(f'File contains {line_count} entries.')    
+        except UnicodeDecodeError as err:
+            sf.error_output(out_filename, "Load Error", "Unable to read line {} due to encoding error".format(line_count+1))        
 
     return data
 
@@ -38,28 +41,32 @@ def load_unlabelled_file(filename):
 
         overflow = {}
         underflow = {}
-        for row in csv_reader:
-            line_count += 1
-            data.append(row)
-            # Check if row contains expected number of variables
-            if "Overflow" in row:
-                overflow[str(line_count)] = len(row["Overflow"])+len(constants.FILE_FORMAT)
-            if "Underflow" in row.values():
-                underflow[str(line_count)] = len([item for item in row.values() if item != "Underflow"])+len(constants.FILE_FORMAT)
+        try:
+            for row in csv_reader:
+                line_count += 1
+                data.append(row)
+                # Check if row contains expected number of variables
+                if "Overflow" in row:
+                    overflow[str(line_count)] = len(row["Overflow"])+len(constants.FILE_FORMAT)
+                if "Underflow" in row.values():
+                    underflow[str(line_count)] = len([item for item in row.values() if item != "Underflow"])+len(constants.FILE_FORMAT)
 
-        print(f'File contains {line_count} entries.')            
+            print(f'File contains {line_count} entries.')            
 
-        if overflow != {}:
-            lines = list(overflow.keys())
-            sizes = list(overflow.values())
-            sf.error_output(out_filename, "Format Error", "Unexpected number of fields. Expected {}, present {}.".format(len(constants.FILE_FORMAT),
-                sf.reduce_output_list(sizes)), lines)
+            if overflow != {}:
+                lines = list(overflow.keys())
+                sizes = list(overflow.values())
+                sf.error_output(out_filename, "Format Error", "Unexpected number of fields. Expected {}, present {}.".format(len(constants.FILE_FORMAT),
+                    sf.reduce_output_list(sizes)), lines)
 
-        if underflow != {}:
-            lines = list(underflow.keys())
-            sizes = list(underflow.values())
-            sf.error_output(out_filename, "Format Error", "Unexpected number of fields. Expected {}, present {}.".format(len(constants.FILE_FORMAT),
-                sf.reduce_output_list(sizes)), lines)
+            if underflow != {}:
+                lines = list(underflow.keys())
+                sizes = list(underflow.values())
+                sf.error_output(out_filename, "Format Error", "Unexpected number of fields. Expected {}, present {}.".format(len(constants.FILE_FORMAT),
+                    sf.reduce_output_list(sizes)), lines)
+
+        except UnicodeDecodeError as err:
+            sf.error_output(out_filename, "Load Error", "Unable to read line {} due to encoding error".format(line_count+1))
 
     return data
 
@@ -104,15 +111,18 @@ def load_file(filename = False):
                 sf.error_output(out_filename, "Unrecognised field names", "Column field name(s) {} are not as expected. Unable to continue.".format(", ".join(difference)), [0])
                 # Do not continue program
                 return
+        data = sf.handle_Nones(data, out_filename)
+
+        content_checker(data)
 
     except OSError as e:
         print("Unable to read file")
         sf.error_output(out_filename, "Load Error", "Unable to read file")
         return
+    except UnicodeDecodeError as err:
+            sf.error_output(out_filename, "Load Error", "Unable to read line {} due to encoding error".format(0))
 
-    data = sf.handle_Nones(data, out_filename)
 
-    content_checker(data)
 
 # ------------------------------------- 
 # Checker functions
