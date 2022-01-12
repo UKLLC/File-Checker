@@ -6,27 +6,44 @@ import re
 import constants
 import shared_functions as sf
 
+def check_encoding(filename):
+    '''
+    Try to read a file, line by line, without specifying encoding. Raise warning if can't be read
+    '''
+    line_count = 0
+    with open(filename) as csv_file:
+        try:
+            csv_reader = csv.DictReader(csv_file)
+            for _ in csv_reader:
+                line_count += 1
+        except UnicodeDecodeError as err:
+            sf.error_output(out_filename, "File Import Warning", "File may contain unrecognised characters. The following error will help you identify the location of the first problematic character. The position refers to the index of the character in the entire file (the first line should be approximately 450 characters). Python Error: {}".format(err))
+    with open(filename, encoding="utf-8") as csv_file:
+        try:
+            csv_reader = csv.DictReader(csv_file)
+            for _ in csv_reader:
+                line_count += 1
+        except UnicodeDecodeError as err:
+            sf.error_output(out_filename, "File Import Error", "File cannot be read with encoding UTC-8. This is likely caused by unrecognised characters. The following error will help you identify the location of the first problematic character. The position refers to the index of the character in the entire file (the first line should be approximately 450 characters). Python Error: {}".format(err))
 
 def load_labelled_file(filename):
     '''
     Loads a CSV file. Read formatting. Formats each line as a dictionary. Saves dictionaries in a list.
     '''
     data = [] # setup to store csv contents as list of dictionaries
-    with open(filename) as csv_file:    
+    with open(filename, encoding="utf-8", errors="ignore") as csv_file:    
         csv_reader = csv.DictReader(csv_file)
         line_count = 0
-        try:
-            for row in csv_reader:
-                line_count += 1
-                data.append(row)
 
-            if not list(row.keys()) == constants.FILE_FORMAT:
-                sf.error_output(out_filename, "Unexpected Field Order", "Fields are correctly named, but appear in the wrong order. Please refer to the specification for the proper order.")
-            
-            print(f'File contains {line_count} entries.')    
-        except UnicodeDecodeError as err:
-            sf.error_output(out_filename, "Load Error", "Unable to read line {} due to encoding error".format(line_count+1))        
+        for row in csv_reader:
+            line_count += 1
+            data.append(row)
 
+        if not list(row.keys()) == constants.FILE_FORMAT:
+            sf.error_output(out_filename, "Unexpected Field Order", "Fields are correctly named, but appear in the wrong order. Please refer to the specification for the proper order.")
+        
+        print(f'File contains {line_count} entries.')    
+      
     return data
 
 
@@ -35,38 +52,35 @@ def load_unlabelled_file(filename):
     Loads a CSV file. Assume formatted as in specification. Formats each line as a dictionary. Saves dictionaries in a list.
     '''
     data = [] # setup to store csv contents as list of dictionaries
-    with open(filename) as csv_file:    
+    with open(filename, encoding = "utf-8", errors="ignore") as csv_file:    
         csv_reader = csv.DictReader(csv_file, fieldnames = constants.FILE_FORMAT, restkey="Overflow", restval="Underflow")
         line_count = 0
 
         overflow = {}
         underflow = {}
-        try:
-            for row in csv_reader:
-                line_count += 1
-                data.append(row)
-                # Check if row contains expected number of variables
-                if "Overflow" in row:
-                    overflow[str(line_count)] = len(row["Overflow"])+len(constants.FILE_FORMAT)
-                if "Underflow" in row.values():
-                    underflow[str(line_count)] = len([item for item in row.values() if item != "Underflow"])+len(constants.FILE_FORMAT)
 
-            print(f'File contains {line_count} entries.')            
+        for row in csv_reader:
+            line_count += 1
+            data.append(row)
+            # Check if row contains expected number of variables
+            if "Overflow" in row:
+                overflow[str(line_count)] = len(row["Overflow"])+len(constants.FILE_FORMAT)
+            if "Underflow" in row.values():
+                underflow[str(line_count)] = len([item for item in row.values() if item != "Underflow"])+len(constants.FILE_FORMAT)
 
-            if overflow != {}:
-                lines = list(overflow.keys())
-                sizes = list(overflow.values())
-                sf.error_output(out_filename, "Format Error", "Unexpected number of fields. Expected {}, present {}.".format(len(constants.FILE_FORMAT),
-                    sf.reduce_output_list(sizes)), lines)
+        print(f'File contains {line_count} entries.')            
 
-            if underflow != {}:
-                lines = list(underflow.keys())
-                sizes = list(underflow.values())
-                sf.error_output(out_filename, "Format Error", "Unexpected number of fields. Expected {}, present {}.".format(len(constants.FILE_FORMAT),
-                    sf.reduce_output_list(sizes)), lines)
+        if overflow != {}:
+            lines = list(overflow.keys())
+            sizes = list(overflow.values())
+            sf.error_output(out_filename, "Format Error", "Unexpected number of fields. Expected {}, present {}.".format(len(constants.FILE_FORMAT),
+                sf.reduce_output_list(sizes)), lines)
 
-        except UnicodeDecodeError as err:
-            sf.error_output(out_filename, "Load Error", "Unable to read line {} due to encoding error".format(line_count+1))
+        if underflow != {}:
+            lines = list(underflow.keys())
+            sizes = list(underflow.values())
+            sf.error_output(out_filename, "Format Error", "Unexpected number of fields. Expected {}, present {}.".format(len(constants.FILE_FORMAT),
+                sf.reduce_output_list(sizes)), lines)
 
     return data
 
@@ -85,11 +99,12 @@ def load_file(filename = False):
     global out_filename
     out_filename = ("{}_Output_Log".format(os.path.split(filename)[1].split(".")[0]))+STR_TIME
 
-    #Check filename
     check_filename(filename)
+    check_encoding(filename)
+
     try:
         print("Loading data from file")
-        with open(filename) as csv_file:
+        with open(filename, encoding = "utf-8", errors="ignore") as csv_file:
             csv_reader = csv.DictReader(csv_file)
             headers = csv_reader.fieldnames
 
@@ -119,9 +134,6 @@ def load_file(filename = False):
         print("Unable to read file")
         sf.error_output(out_filename, "Load Error", "Unable to read file")
         return
-    except UnicodeDecodeError as err:
-            sf.error_output(out_filename, "Load Error", "Unable to read line {} due to encoding error".format(0))
-
 
 
 # ------------------------------------- 
@@ -157,21 +169,28 @@ def check_filename(filename):
     '''
     Check filename abides by file 1 naming convention:
     <UK LLC Study Code>_FILE1_”v” & <version number>_creation_dateYYYYMMDD>.csv
-    e.g., EXCEED_FILE1_v1_20210514.csv
+    e.g., EXCEED_FILE1_v1_20210514.csv or NIHRBIO_COPING_v1_20220112
     '''
     print("Checking filename")
     filename_sections = os.path.split(filename)[1].split("_")
-    if len(filename_sections) != 4:
+    number_of_sections = len(filename_sections)
+    if number_of_sections != 4 and number_of_sections !=5:
         sf.error_output(out_filename, "File Naming Error", "Filename does not match the naming convention. Should include 4 underscore separated sections.")
         return
 
-    study_code = filename_sections[0]
-    file_1 = filename_sections[1]
-    version = filename_sections[2]
-    creation_date = filename_sections[3].split(".")[0]
+    if number_of_sections == 4:
+        study_code = filename_sections[0]
+        file_1 = filename_sections[1]
+        version = filename_sections[2]
+        creation_date = filename_sections[3].split(".")[0]
+    elif number_of_sections == 5:
+        study_code = filename_sections[0]+"_"+filename_sections[1]
+        file_1 = filename_sections[2]
+        version = filename_sections[3]
+        creation_date = filename_sections[4].split(".")[0]
 
     if not study_code in constants.UK_LLC_STUDY_CODES:
-        sf.error_output(out_filename, "File Naming Error", "Filename does not match the naming convention. Unknown study code.")
+        sf.error_output(out_filename, "File Naming Error", "Filename does not match the naming convention. Study identifier not recognised. Make sure the leading part of the filename is among our listed recognised study identifiers.")
 
     if not file_1 == "FILE1":
         sf.error_output(out_filename, "File Naming Error", "Filename does not match the naming convention. Should include FILE1 designation following study code.")
@@ -184,7 +203,6 @@ def check_filename(filename):
     creation_date_format = re.compile("[0-9]{8}")
     if len(creation_date) != 8 or not creation_date_format.match(creation_date) or not sf.verify_date_format_YYYYMMDD(creation_date):
         sf.error_output(out_filename, "File Naming Error", "Filename does not match the naming convention. Should include creation date in the format YYYYMMDD.")
-
 
 
 def check_studyID(input_data):
@@ -442,6 +460,8 @@ Record of test files:
         bad_date_range.csv      1 date of format DD/MM/YYYY where DD>31, 1 date of formate DD/MM/YYYY where MM>12 - should fail
         - Note, not checking dates are reasonable, just checking format. eg, Date 01/01/1800 would be acceptable.
 
+        bad_encoding.csv        Includes rare characters
+
         general_bad.csv         At least one invalid value per field (invalid by length or illegal characters) - should error at least once per field
             STUDY_ID - 60 characters, null
             ROW_STATUS - "CH", "D", null
@@ -465,5 +485,4 @@ Record of test files:
     - Name scheme check:
         EXCEED_FILE1_v1_20210514.csv        Example filename provided in specification - should pass      
         EXCED_FILE2_v1.0_202105145.csv      Corruption of example. Every underscore separated section is incorrect in some way - should fail 4 times
-
 '''

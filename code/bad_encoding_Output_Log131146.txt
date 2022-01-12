@@ -1,0 +1,7 @@
+File Encoding Error
+File cannot be read by certain functions. This is likely caused by unrecognised characters. The following error will help you identify the location of the first problematic character. The position refers to the index of the character in the entire file.
+Python Error: 'charmap' codec can't decode byte 0x9d in position 1038: character maps to <undefined>
+--------------------
+
+Often the unrecognised characters will not be clear, appearing to be regular spaces or quotation marks. You can narrow down the location of the characters by copying the file, removing sections and repeatedly running this check, observing how the position referenced in the error changes.
+--------------------

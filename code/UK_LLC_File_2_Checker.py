@@ -37,8 +37,6 @@ def load_file(filename = False):
             headers = csv_reader.fieldnames
 
             # 1. All headers are the same
-
-
     except OSError as e:
         print("Unable to read file")
         sf.error_output(out_filename, "Load Error", "Unable to read file")
@@ -50,8 +48,8 @@ def load_file(filename = False):
 def check_filename(filename):
     '''
     Check filename abides by file 1 naming convention:
-    <UK LLC Study Code>_FILE1_”v” & <4 digit version number>_creation_dateYYYYMMDD>.csv
-    e.g., EXCEED_FILE1_v1_20210514.csv
+    <UK LLC Study Code>_<tablename>_<”v” & version number>_<version dateYYYYMMDD>.csv
+    e.g., EXCEED_COVIDWAVE1_v0001_20210514.csv
     '''
     print("Checking filename")
     filename_sections = os.path.split(filename)[1].split("_")
@@ -65,7 +63,13 @@ def check_filename(filename):
     creation_date = filename_sections[-1].split(".")[0]
 
     if not study_code in constants.UK_LLC_STUDY_CODES:
-        sf.error_output(out_filename,"File Naming Error", "Filename does not match the naming convention. Unknown study code.")
+        # If no matches, check if study_code is "_" separated like (NIRHBIO_COPING) and adjust
+        study_code = filename_sections[0]+"_"+filename_sections[1]
+        if study_code in constants.UK_LLC_STUDY_CODES:
+            # Adjust table name range
+            table_name = "_".join(filename_sections[2:-2])
+        else:
+            sf.error_output(out_filename,"File Naming Error", "Study identifier not recognised. Make sure the leading part of the filename is among our listed recognised study identifiers.")
 
     if len(table_name) == 0:
         sf.error_output(out_filename,"File Naming Error", "Filename does not match the naming convention. Should include a unique table name following the study code.")

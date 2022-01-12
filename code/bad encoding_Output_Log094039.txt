@@ -1,6 +1,0 @@
-File Naming Error
-Filename does not match the naming convention. Should include 4 underscore separated sections.
---------------------
-Load Error
-Unable to read line 1 due to encoding error
---------------------
