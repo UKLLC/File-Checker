@@ -4,7 +4,7 @@
 block_cipher = None
 
 
-a = Analysis(['UK_LLC_file_1_checker.py'],
+a = Analysis(['UK_LLC_File_1_Checker.py'],
              pathex=['C:\\Users\\bq21582\\OneDrive - University of Bristol\\Documents\\Programs\\File-Checker\\code'],
              binaries=[],
              datas=[],
@@ -26,7 +26,7 @@ exe = EXE(pyz,
           a.zipfiles,
           a.datas,  
           [],
-          name='UK_LLC_file_1_checker',
+          name='UK_LLC_File_1_Checker',
           debug=False,
           bootloader_ignore_signals=False,
           strip=False,
