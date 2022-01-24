@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
-  <assemblyIdentity name="UK_LLC_File_1_Checker" processorArchitecture="amd64" type="win32" version="1.0.0.0"/>
+  <assemblyIdentity name="uk_llc_file_1_checker" processorArchitecture="amd64" type="win32" version="1.0.0.0"/>
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security>
       <requestedPrivileges>
