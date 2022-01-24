@@ -280,13 +280,13 @@ def check_postcode(input_data):
                 
                 #e.g. XXX
                 elif len(postcode) == 3:
-                    pattern = re.compile("^[a-zA-Z]{1}[0-9]{1}")
+                    pattern = re.compile("^[a-zA-Z]{1}[0-9]{2}|[a-zA-Z]{2}[0-9]{1}")
                 #e.g. XXXX
                 elif len(postcode) == 4:
                     pattern = re.compile("^[a-zA-Z]{2}[0-9]{2}")
                 #e.g. XX
                 elif len(postcode) == 2:
-                    pattern = re.compile("^[a-zA-Z]{2}[0-9]{3}")
+                    pattern = re.compile("^[a-zA-Z]{1}[0-9]{1}")
 
                 if not pattern.match(reduced_postcode):
                     problem_lines.append(i + 1)
