@@ -2,6 +2,7 @@ import os
 from tkinter import *
 from tkinter import filedialog as fd
 from datetime import datetime
+import re
 
 def file_dialog():
     '''
@@ -31,7 +32,12 @@ def verify_date_format_DDMMYYYY(date):
         date_obj = datetime.strptime(date, date_format)
         return True
     except ValueError:
-        return False
+        # Though 00/00/[year] is not strictly a valid date, it is acceptable. 
+        pattern = "00\/00\/[1,2][0-9]{3}|00\/[0,1][0-9]\/[1,2][0-9]{3}"
+        if re.seach(pattern, date):
+            return True
+        else:
+            return False
 
 def verify_date_format_YYYYMMDD(date):
     '''

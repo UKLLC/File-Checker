@@ -263,7 +263,7 @@ def check_postcode(input_data):
     problem_lines = []
     for i in range(len(postcodes)):
         postcode = postcodes[i]
-        if postcode:
+        if postcode and len(postcode)>0:
             reduced_postcode = postcode.replace(" ", "")
             if not len(reduced_postcode) == len(postcode)-1:
                 problem_lines.append(i + 1)
