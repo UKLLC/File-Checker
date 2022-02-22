@@ -13,6 +13,7 @@ import re
 
 
 
+
 def load_file(filename = False):
     '''
     Get filename from dialog. Check headers of columns.
@@ -30,6 +31,7 @@ def load_file(filename = False):
 
     #Check filename
     check_filename(filename)
+    check_encoding(filename)
     try:
         print("Loading data from file")
         with open(filename) as csv_file:
@@ -82,6 +84,28 @@ def check_filename(filename):
     creation_date_format = re.compile("[0-9]{8}")
     if len(creation_date) != 8 or not creation_date_format.match(creation_date) or not sf.verify_date_format_YYYYMMDD(creation_date):
         sf.error_output(out_filename,"File Naming Error", "Filename does not match the naming convention. Should include creation date in the format YYYYMMDD.")
+
+
+def check_encoding(filename):
+    '''
+    Try to read a file, line by line, without specifying encoding. Raise warning if can't be read
+    '''
+    line_count = 0
+    with open(filename) as csv_file:
+        try:
+            csv_reader = csv.DictReader(csv_file)
+            for _ in csv_reader:
+                line_count += 1
+        except UnicodeDecodeError as err:
+            sf.error_output(out_filename, "File Import Warning", "File may contain unrecognised characters. The following error will help you identify the location of the first problematic character. The position refers to the index of the character in the entire file. Python Error: {}".format(err))
+    with open(filename, encoding="utf-8") as csv_file:
+        try:
+            csv_reader = csv.DictReader(csv_file)
+            for _ in csv_reader:
+                line_count += 1
+        except UnicodeDecodeError as err:
+            sf.error_output(out_filename, "File Import Error", "File cannot be read with encoding UTC-8. This is likely caused by unrecognised characters. The following error will help you identify the location of the first problematic character. The position refers to the index of the character in the entire file. Python Error: {}".format(err))
+
 
 
 def content_checker(headers):
