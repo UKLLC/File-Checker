@@ -120,6 +120,11 @@ def content_checker(headers):
     if not "STUDY_ID" in headers:
         sf.error_output(out_filename, "File Format Error", "File does not include 'STUDY_ID' column.")
 
+    location_keywords = ["postcode", "address", "lsoa", "msoa", "district","idaci"]
+    for header in headers:
+        for kw in location_keywords:
+            if kw in header.lower():
+                sf.error_output(out_filename, "Location Field Warning", "File contains potential geographical field: '{}', identified by keyword {}. File 2s should not include any geographical units.".format(header, kw))
 
 
 if __name__ == "__main__":
