@@ -189,7 +189,7 @@ def check_filename(filename):
         version = filename_sections[3]
         creation_date = filename_sections[4].split(".")[0]
 
-    if not study_code in constants.UK_LLC_STUDY_CODES:
+    if not (study_code in constants.UK_LLC_STUDY_CODES or study_code in constants.ACCEPTABLE_STUDY_CODES):
         sf.error_output(out_filename, "File Naming Error", "Filename does not match the naming convention. Study identifier not recognised. Make sure the leading part of the filename is among our listed recognised study identifiers.")
 
     if not file_1 == "FILE1":

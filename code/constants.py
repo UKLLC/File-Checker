@@ -44,7 +44,7 @@ UK_LLC_STUDY_CODES = [
     "MCS",
     "NICOLA",
     "NCDS58",
-    "NEXTSTEP",
+    "NEXTSTEPS",
     "NIHRBIO_COPING",
     "NSHD46",
     "SABRE",
@@ -54,6 +54,16 @@ UK_LLC_STUDY_CODES = [
     "TWINSUK",
     "UKBB",
     "UKHLS"
+]
+ACCEPTABLE_STUDY_CODES = [
+    "NIHRBIO",
+    "MCS_CM",
+    "MCS_Parents",
+    "EPIC",
+    "NCDS",
+    "NSHD",
+    "TRACKCOVID",
+    "LSTYPE"
 ]
 #"COPING",
 #"NIHRBIO",
