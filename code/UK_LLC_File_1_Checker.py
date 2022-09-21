@@ -97,7 +97,7 @@ def load_file(filename = False):
         filename = sf.file_dialog()
 
     global out_filename
-    out_filename = ("{}_Output_Log".format(os.path.split(filename)[1].split(".")[0]))+STR_TIME
+    out_filename = ("{}_Output_Log".format(os.path.split(filename)[1].split(".")[0])) + datetime.now().strftime("%H%M%S")+".txt"
 
     check_filename(filename)
     check_encoding(filename)
@@ -425,11 +425,7 @@ def content_checker(input_data):
         f.write("File passed all checks.")
 
 
-
 if __name__ == "__main__":
-
-    STR_TIME = datetime.now().strftime("%H%M%S")+".txt"
-
     input_data = load_file()
 
 

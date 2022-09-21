@@ -1,0 +1,12 @@
+1. Phase out file 2 check
+2. Adapt for stata/spss. Or do file 1s always have to be csv.
+3. load date from filename
+4. Read full filename
+5. Read row count
+6. Count the number of participants with ukllc staus equal to 1 and row status equal to C
+7. Verify: does count of 6. = user entered sum.
+
+Plan:
+Make Tkinter file dialog for file UK_LLC_File_1_Checker
+Allow it to import file and run file 1 checks as previously
+Allow user input for required fields.
