@@ -34,7 +34,7 @@ def verify_date_format_DDMMYYYY(date):
     except ValueError:
         # Though 00/00/[year] is not strictly a valid date, it is acceptable. 
         pattern = "00\/00\/[1,2][0-9]{3}|00\/[0,1][0-9]\/[1,2][0-9]{3}"
-        if re.seach(pattern, date):
+        if re.search(pattern, date):
             return True
         else:
             return False

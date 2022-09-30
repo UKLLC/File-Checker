@@ -84,7 +84,7 @@ def load_unlabelled_file(filename):
 
     return data
 
-def load_file(filename = False):
+def load_file(filename = False, UI = False):
     '''
     Get filename from dialog. Check headers of columns.
     If all variable names are as expected, load in given format.
@@ -95,6 +95,9 @@ def load_file(filename = False):
     print("Opening file dialog")
     if not filename: # if filename has not been passed (would only be for debugging/testing)
         filename = sf.file_dialog()
+    print(UI)
+    if UI:
+        UI.set_loaded_filename(filename)
 
     global out_filename
     out_filename = ("{}_Output_Log".format(os.path.split(filename)[1].split(".")[0])) + datetime.now().strftime("%H%M%S")+".txt"
@@ -130,6 +133,9 @@ def load_file(filename = False):
 
         content_checker(data)
 
+        UI.show_output(out_filename)
+        print("File 1 checks complete")
+    
     except OSError as e:
         print("Unable to read file")
         sf.error_output(out_filename, "Load Error", "Unable to read file")
