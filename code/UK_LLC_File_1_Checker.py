@@ -93,23 +93,37 @@ def load_file(filename = False, UI = False):
 
     '''
     print("Opening file dialog")
-    if not filename: # if filename has not been passed (would only be for debugging/testing)
+    if not filename: # if filename has not been passed 
         filename = sf.file_dialog()
-    print(UI)
+
     if UI:
         UI.set_loaded_filename(filename)
+
+    # Progress milestone - loaded file
+    if UI:
+        UI.update_progress_bar()
 
     global out_filename
     out_filename = ("{}_Output_Log".format(os.path.split(filename)[1].split(".")[0])) + datetime.now().strftime("%H%M%S")+".txt"
 
     check_filename(filename)
+    # Progress milestone - checked filename
+    if UI:
+        UI.update_progress_bar()
+
     check_encoding(filename)
+    # Progress milestone - checked encoding
+    if UI:
+        UI.update_progress_bar()
 
     try:
         print("Loading data from file")
         with open(filename, encoding = "utf-8", errors="ignore") as csv_file:
             csv_reader = csv.DictReader(csv_file)
             headers = csv_reader.fieldnames
+            # Progress milestone - loaded file contents and headers
+            if UI:
+                UI.update_progress_bar()
 
             # 1. All headers are the same
             difference = [x for x in headers if x not in constants.FILE_FORMAT]
@@ -129,11 +143,21 @@ def load_file(filename = False, UI = False):
                 sf.error_output(out_filename, "Unrecognised field names", "Column field name(s) {} are not as expected. Unable to continue.".format(", ".join(difference)), [0])
                 # Do not continue program
                 return
+        # Progress milestone - loaded file contents
+        if UI:
+            UI.update_progress_bar()
+        
         data = sf.handle_Nones(data, out_filename)
+        # Progress milestone - formated Nones to string
+        if UI:
+            UI.update_progress_bar()
 
-        content_checker(data)
+        content_checker(data, UI)
 
         UI.show_output(out_filename)
+        # Progress milestone - Output
+        if UI:
+            UI.update_progress_bar()
         print("File 1 checks complete")
     
     except OSError as e:
@@ -419,16 +443,34 @@ def check_vars(input_data):
     check_postcode(input_data)
 
 
-def content_checker(input_data):
+def content_checker(input_data, UI = False):
     check_studyID(input_data)
+    # Progress milestone - checked IDs
+    if UI:
+        UI.update_progress_bar()
+
     check_current_case(input_data)
+    # Progress milestone - checked current and historical rows
+    if UI:
+        UI.update_progress_bar()
+
     check_dates(input_data)
+    # Progress milestone - checked dates
+    if UI:
+        UI.update_progress_bar()
+
     check_vars(input_data)
+    # Progress milestone - checked variable names
+    if UI:
+        UI.update_progress_bar()
 
     #If no errors logged
     if not os.path.exists(out_filename):
         f = open( out_filename, "w")
         f.write("File passed all checks.")
+    # Progress milestone - checked variable names
+    if UI:
+        UI.update_progress_bar()
 
 
 if __name__ == "__main__":
