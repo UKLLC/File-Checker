@@ -1,19 +1,12 @@
 from re import L
 import tkinter as tk
-from tkinter import ttk
+from tkinter import Label, ttk
 from tkinter import font
 from datetime import datetime
-from turtle import bgcolor
+from turtle import bgcolor, width
 import shared_functions as sf
 import UK_LLC_File_1_Checker as f1
 import threading
-
-class WrappingLabel(tk.Label):
-    '''a type of Label that automatically adjusts the wrap to the size'''
-    def __init__(self, master=None, **kwargs):
-        tk.Label.__init__(self, master, **kwargs)
-        self.bind('<Configure>', lambda e: self.config(wraplength=self.winfo_width()))
-
 
 
 class MainUI:
@@ -131,30 +124,56 @@ class MainUI:
 
     def __init__(self):
 
+        self.window_width = 700
         # init filename to None
         self.filename = None
 
         self.root = tk.Tk()
-        self.root.geometry("600x800")
+        #TODO make y dimensions scre
+        # en size & insert scroll bar on window
+        self.root.geometry("{}x700".format(self.window_width))
+        self.root.resizable(False, True)
+        print(self.root.winfo_width())
 
-        
         self.root.title('UKLLC File 1 Checker and Documentation')
+
+        main_frame = tk.Frame(self.root)
+        main_frame.pack(fill=tk.BOTH, expand = 1)
+
+        # Create A Canvas
+        window_canvas = tk.Canvas(main_frame)
+        window_canvas.pack(side=tk.LEFT,fill=tk.BOTH,expand=1)
+
+        # Add A Scrollbars to Canvas
+        y_scrollbar = ttk.Scrollbar(main_frame,orient=tk.VERTICAL,command=window_canvas.yview)
+        y_scrollbar.pack(side=tk.RIGHT,fill=tk.Y)
+
+        # Configure the canvas
+        window_canvas.configure(yscrollcommand=y_scrollbar.set)
+        window_canvas.bind("<Configure>",lambda e: window_canvas.config(scrollregion = window_canvas.bbox(tk.ALL))) 
+
+        # Create Another Frame INSIDE the Canvas
+        self.nested_frame = tk.Frame(window_canvas)
+
+        # Add that New Frame a Window In The Canvas
+        window_canvas.create_window((0,0),window= self.nested_frame, anchor="nw")
+
 
         default_font = font.nametofont("TkDefaultFont")  # Get default font value into Font object
         default_font_family = default_font.actual()["family"]
 
-        header = tk.Frame(self.root)
-        row0 = tk.Frame(self.root)
-        row1 = tk.Frame(self.root)
-        row2 = tk.Frame(self.root)
-        row3 = tk.Frame(self.root)
-        row4 = tk.Frame(self.root)
+        header = tk.Frame(self.nested_frame)
+        row0 = tk.Frame(self.nested_frame)
+        row1 = tk.Frame(self.nested_frame)
+        row2 = tk.Frame(self.nested_frame)
+        row3 = tk.Frame(self.nested_frame)
+        row4 = tk.Frame(self.nested_frame)
 
         header_txt = tk.Label(header, text = "File 1 Integrity Checks",font=(default_font_family,12,'bold'))
         header.pack(side=tk.TOP, fill=tk.X,padx=5)
         header_txt.pack(side=tk.LEFT, padx=5)
 
-        sep1 = ttk.Separator(self.root,orient='horizontal')
+        sep1 = ttk.Separator(self.nested_frame,orient='horizontal')
         sep1.pack(fill='x')
 
         intro_txt = tk.Label(row0, text="Please select your File 1. The file must be in CSV format.", justify=tk.LEFT)
@@ -168,7 +187,7 @@ class MainUI:
         b1.pack(side=tk.LEFT, padx=5, pady=5)
         self.loaded_file_txt.pack(side = tk.RIGHT, padx=5)
 
-        sep2 = ttk.Separator(self.root,orient='horizontal')
+        sep2 = ttk.Separator(self.nested_frame,orient='horizontal')
         sep2.pack(fill='x')
 
         auto_checks_txt = tk.Label(row2, text="Click 'Start' to begin automated file 1 integrity checks.\nPlease wait until the automated checks are completed before filling out the File 1 documentation section", justify=tk.LEFT)
@@ -198,8 +217,8 @@ class MainUI:
 
         # Text area output block
         # adding frame
-        text_frame = tk.Frame(self.root, borderwidth=2)
-        text_frame.pack(side=tk.TOP,pady=5, padx=10, expand = True, fill=tk.X)
+        text_frame = tk.Frame(self.nested_frame, borderwidth=2)
+        text_frame.pack(side=tk.TOP,pady=5, padx=10)
 
         # adding scrollbars 
         ver_sb = tk.Scrollbar(text_frame, orient=tk.VERTICAL )
@@ -210,7 +229,7 @@ class MainUI:
 
         # adding writing space
         self.check_text = tk.Text(text_frame, height=15)
-        self.check_text.pack(side=tk.LEFT, expand = True, fill=tk.X)
+        self.check_text.pack(side=tk.LEFT)
 
         # binding scrollbar with text area
         self.check_text.config(yscrollcommand=ver_sb.set)
@@ -221,20 +240,20 @@ class MainUI:
 
         #############################################
         #Documentation
-        doc_header_row = tk.Frame(self.root)
-        doc_desc_row = tk.Frame(self.root)
-        doc_actions_row = tk.Frame(self.root)
+        doc_header_row = tk.Frame(self.nested_frame)
+        doc_desc_row = tk.Frame(self.nested_frame)
+        doc_actions_row = tk.Frame(self.nested_frame)
 
         doc_header_txt = tk.Label(doc_header_row, text = "File 1 Documentation",font=(default_font_family,12,'bold'))
         doc_header_row.pack(side=tk.TOP, fill=tk.X,padx=5)
         doc_header_txt.pack(side=tk.LEFT, padx=5)
 
-        sep1 = ttk.Separator(self.root,orient='horizontal')
+        sep1 = ttk.Separator(self.nested_frame,orient='horizontal')
         sep1.pack(fill='x')
 
-        doc_desc = WrappingLabel(doc_desc_row, text = "Placeholder text explaining what to do with file 1 documentation. It will probably be quite long, hence why i'm padding this debugging message out for size. Probably longer than this still. So lets chuck some more characters in. Is this enough yet? Nearly.", justify = tk.LEFT)
+        doc_desc = tk.Label(doc_desc_row, text = "Placeholder text explaining what to do with file 1 documentation. It will probably be quite long, hence why i'm padding this debugging message out for size. Probably longer than this still. So lets chuck some more characters in. Is this enough yet? Nearly.", justify = tk.LEFT, wraplength=self.window_width-22)
         doc_desc_row.pack(side=tk.TOP, fill=tk.X,padx=5)
-        doc_desc.pack(expand = True, fill = tk.X)
+        doc_desc.pack(side=tk.LEFT, fill = tk.X)
         # TODO insert first 4 automatic fields as text blocks.
         question_fields = [
             "Date File Uploaded to DHCW",
@@ -244,14 +263,14 @@ class MainUI:
             "4. Please "
         ]
         # Insert user fill fields
-        #ents = self.make_entries(self.root, ["1", "2", "3"])
+        #ents = self.make_entries(self.nested_frame, ["1", "2", "3"])
     
 
         #TODO insert 9.
 
-        b2 = tk.Button(self.root, text='Save')
+        b2 = tk.Button(self.nested_frame, text='Save')
         b2.pack(side=tk.LEFT, padx=5, pady=5)
-        b3 = tk.Button(self.root, text='Quit', command=self.root.quit)
+        b3 = tk.Button(self.nested_frame, text='Quit', command=self.root.quit)
         b3.pack(side=tk.LEFT, padx=5, pady=5)
 
 
