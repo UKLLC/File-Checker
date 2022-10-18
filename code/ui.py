@@ -58,23 +58,6 @@ class MainUI:
     def get_loaded_filename(self):
         return self.loaded_filename
 
-    def make_entries(self, fields):
-        entries = {}
-        for field in fields:
-            print(field)
-            row = tk.Frame(self.root)
-            lab = tk.Label(row, width=22, text=field+": ", anchor='w')
-            ent = tk.Entry(row)
-            row.pack(side=tk.TOP, 
-                    fill=tk.X, 
-                    padx=5, 
-                    pady=5)
-            lab.pack(side=tk.LEFT)
-            ent.pack(side=tk.RIGHT, 
-                    expand=tk.YES, 
-                    fill=tk.X)
-            entries[field] = ent
-        return entries
 
     ######################################################
     # reset processes
@@ -119,6 +102,25 @@ class MainUI:
 
     def check_complete_txt(self):
         self.checks_progress_txt.config(text = "Checks completed.")
+
+    def separator(self, parent):
+        sep = ttk.Separator(parent, orient='horizontal')
+        sep.pack(fill='x', side = tk.TOP)
+        return sep
+
+    def doc_block(self, txt):
+
+        row = tk.Frame(self.nested_frame)
+        desc = tk.Label(row, text = txt,wraplength=self.window_width-150, justify=tk.LEFT)
+        inpt = tk.Entry(row)
+        
+        row.pack(side = tk.TOP, fill = tk.X, padx=10, pady=2)
+        desc.pack(side = tk.LEFT)
+        inpt.pack(side = tk.RIGHT)
+
+        self.separators.append(self.separator(self.nested_frame))
+        return [row, desc, inpt]
+    
     #######################
 
 
@@ -127,6 +129,8 @@ class MainUI:
         self.window_width = 700
         # init filename to None
         self.filename = None
+
+        self.separators = []
 
         self.root = tk.Tk()
         #TODO make y dimensions scre
@@ -173,8 +177,7 @@ class MainUI:
         header.pack(side=tk.TOP, fill=tk.X,padx=5)
         header_txt.pack(side=tk.LEFT, padx=5)
 
-        sep1 = ttk.Separator(self.nested_frame,orient='horizontal')
-        sep1.pack(fill='x')
+        self.separators.append(self.separator(self.nested_frame))
 
         intro_txt = tk.Label(row0, text="Please select your File 1. The file must be in CSV format.", justify=tk.LEFT)
         row0.pack(side=tk.TOP, fill=tk.X, padx=5)
@@ -187,8 +190,7 @@ class MainUI:
         b1.pack(side=tk.LEFT, padx=5, pady=5)
         self.loaded_file_txt.pack(side = tk.RIGHT, padx=5)
 
-        sep2 = ttk.Separator(self.nested_frame,orient='horizontal')
-        sep2.pack(fill='x')
+        self.separators.append(self.separator(self.nested_frame))
 
         auto_checks_txt = tk.Label(row2, text="Click 'Start' to begin automated file 1 integrity checks.\nPlease wait until the automated checks are completed before filling out the File 1 documentation section", justify=tk.LEFT)
         row2.pack(side=tk.TOP, fill=tk.X, padx=5)
@@ -239,6 +241,9 @@ class MainUI:
         hor_sb.config(command=self.check_text.xview)
 
         #############################################
+
+        documentation = {}
+
         #Documentation
         doc_header_row = tk.Frame(self.nested_frame)
         doc_desc_row = tk.Frame(self.nested_frame)
@@ -264,7 +269,56 @@ class MainUI:
         ]
         # Insert user fill fields
         #ents = self.make_entries(self.nested_frame, ["1", "2", "3"])
-    
+
+        # We are going to explicitly specify each question in turn. No clever loops this time. 
+        sep2 = ttk.Separator(self.nested_frame, orient='horizontal')
+        sep2.pack(fill='x', side = tk.TOP)
+        # 1. Date - auto filled
+        documentation["Date"] = self.doc_block("Date:")
+
+        # 2. File name - auto filled
+        documentation["File Name"] = self.doc_block("File Name:")
+
+        # 3. LPS - auto filled from file name? check if any LPS from the constants list is in the filename, if so add. 
+        #    NOTE: check entered val is in constants list.
+        documentation["LPS"] = self.doc_block("LPS:")
+
+        # 4. Row count - auto filled
+        documentation["Row Count"] = self.doc_block("Row Count:")
+
+        # 5. date file uploaded to DHCW - user filled, format checked (or date select box?)
+        documentation["Upload Date"] = self.doc_block("Date File Uploaded to DHCW:")
+
+        # 6. ...
+        documentation["Total Participants"] = self.doc_block("1. Please enter the total number of participants (n) in the cohort (enrolled sample/headline denominator)")
+
+        # 7. ...
+        documentation["Exclusions1"] = self.doc_block("2. Please enter the number of participants (n) excluded because they died on or before 31/12/2019 (i.e. participants who died and whose death is not likely to be related to COVID 19. We would expect this number to be 0 because these participants can have their data flow to the UK LLC, unless there is specific study policy precluding them.)")
+
+        # 8. ...
+        documentation["Exclusions2"] = self.doc_block("3. Please enter the number of participants (n) excluded because they died on or after 01/01/2020 (It is essential that data for participants who have died during the COVID 19 pandemic (on or after 01/01/2020) continue to flow to the UK LLC TRE, unless this directly violates Study policy. Therefore, we would expect this number to be 0)")
+
+        # 9. ...
+        documentation["Exclusions3"] = self.doc_block("4. Please enter the number of participants (n) excluded because they have withdrawn from the LPS")
+
+        # 10. ...
+        documentation["Exclusions4"] = self.doc_block("5. Please enter the number of participants (n) excluded because they have specifically dissented to the use of their data in the UK LLC TRE")
+
+        # 11.
+        documentation["Exclusions5"] = self.doc_block("6. Please enter the number of participants (n) excluded because they have dissented to record linkage (i.e. NHS Digital) (While it is up to LPS whether they send data for participants who have dissented to record linkage (i.e. NHS Digital), please be aware that these participants can be sent to UK LLC with permissions set accordingly. Dissenting to record linkage does not preclude participants from the UK LLC resource, where study-collected data can be provided. )")
+
+        # 12. ...
+        documentation["Exclusions6"] = self.doc_block("7. Please enter the number of participants (n) excluded because appropriate governance has not been established")
+
+        # 13. ...
+        documentation["Exclusions7"] = self.doc_block("8. Please enter the number of participants (n) excluded for 'other' reasons")
+
+        #14. ...
+        documentation["Total Included"] = self.doc_block("9. The number of participants (n) included in the sample uploaded to NHS DHCW (i.e the number in your File 1 where UK LLC status (UKLLC_STATUS) is equal to 1 and Row_Status is equal to 'C')")
+
+        # TODO differentiate bold and reg text in doc_block
+        #      Buttons and controls for submitting the docs
+        #      Entry fields locking and unlocking (and when to do so)
 
         #TODO insert 9.
 
