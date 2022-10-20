@@ -108,18 +108,27 @@ class MainUI:
         sep.pack(fill='x', side = tk.TOP)
         return sep
 
-    def doc_block(self, txt):
+    def doc_block(self, bold_txt, reg_txt = False):
 
         row = tk.Frame(self.nested_frame)
-        desc = tk.Label(row, text = txt,wraplength=self.window_width-150, justify=tk.LEFT)
+        desc1 = tk.Label(row, text = bold_txt,wraplength=self.window_width-160, justify=tk.LEFT, font=(self.default_font_family,9,'bold'))
+        if reg_txt:
+            row2 = tk.Frame(self.nested_frame)
+            desc2 = tk.Label(row2, text = reg_txt,wraplength=self.window_width-160, justify=tk.LEFT)
+        else:
+            desc2 = None
         inpt = tk.Entry(row)
         
         row.pack(side = tk.TOP, fill = tk.X, padx=10, pady=2)
-        desc.pack(side = tk.LEFT)
         inpt.pack(side = tk.RIGHT)
+        desc1.pack(side = tk.LEFT)
+        if reg_txt:
+            row2.pack(side = tk.TOP, fill = tk.X, padx=10, pady=2)
+            desc2.pack(side = tk.LEFT)
+        
 
         self.separators.append(self.separator(self.nested_frame))
-        return [row, desc, inpt]
+        return [row, desc1, inpt, desc2]
     
     #######################
 
@@ -164,7 +173,7 @@ class MainUI:
 
 
         default_font = font.nametofont("TkDefaultFont")  # Get default font value into Font object
-        default_font_family = default_font.actual()["family"]
+        self.default_font_family = default_font.actual()["family"]
 
         header = tk.Frame(self.nested_frame)
         row0 = tk.Frame(self.nested_frame)
@@ -173,7 +182,7 @@ class MainUI:
         row3 = tk.Frame(self.nested_frame)
         row4 = tk.Frame(self.nested_frame)
 
-        header_txt = tk.Label(header, text = "File 1 Integrity Checks",font=(default_font_family,12,'bold'))
+        header_txt = tk.Label(header, text = "File 1 Integrity Checks",font=(self.default_font_family,12,'bold'))
         header.pack(side=tk.TOP, fill=tk.X,padx=5)
         header_txt.pack(side=tk.LEFT, padx=5)
 
@@ -201,7 +210,7 @@ class MainUI:
         
         # # Adding progress bar
         sub_row3 = tk.Frame(row3)
-        self.pb1 = ttk.Progressbar(sub_row3, orient=tk.HORIZONTAL, length=200, mode='determinate')
+        self.pb1 = ttk.Progressbar(sub_row3, orient=tk.HORIZONTAL, length=500, mode='determinate')
 
         # Add text for auto checks progress
         self.checks_progress_txt = tk.Label(row3, text = "")
@@ -249,7 +258,7 @@ class MainUI:
         doc_desc_row = tk.Frame(self.nested_frame)
         doc_actions_row = tk.Frame(self.nested_frame)
 
-        doc_header_txt = tk.Label(doc_header_row, text = "File 1 Documentation",font=(default_font_family,12,'bold'))
+        doc_header_txt = tk.Label(doc_header_row, text = "File 1 Documentation",font=(self.default_font_family,12,'bold'))
         doc_header_row.pack(side=tk.TOP, fill=tk.X,padx=5)
         doc_header_txt.pack(side=tk.LEFT, padx=5)
 
@@ -259,16 +268,7 @@ class MainUI:
         doc_desc = tk.Label(doc_desc_row, text = "Placeholder text explaining what to do with file 1 documentation. It will probably be quite long, hence why i'm padding this debugging message out for size. Probably longer than this still. So lets chuck some more characters in. Is this enough yet? Nearly.", justify = tk.LEFT, wraplength=self.window_width-22)
         doc_desc_row.pack(side=tk.TOP, fill=tk.X,padx=5)
         doc_desc.pack(side=tk.LEFT, fill = tk.X)
-        # TODO insert first 4 automatic fields as text blocks.
-        question_fields = [
-            "Date File Uploaded to DHCW",
-            "1. Please enter the total number of participants (n) in the cohort (enrolled sample/headline denominator)",
-            "2. Please enter the number of participants (n) excluded because they died on or before 31/12/2019",
-            "3. Please enter the number of participants (n) excluded because they died on or after 01/01/2020",
-            "4. Please "
-        ]
-        # Insert user fill fields
-        #ents = self.make_entries(self.nested_frame, ["1", "2", "3"])
+
 
         # We are going to explicitly specify each question in turn. No clever loops this time. 
         sep2 = ttk.Separator(self.nested_frame, orient='horizontal')
@@ -293,10 +293,10 @@ class MainUI:
         documentation["Total Participants"] = self.doc_block("1. Please enter the total number of participants (n) in the cohort (enrolled sample/headline denominator)")
 
         # 7. ...
-        documentation["Exclusions1"] = self.doc_block("2. Please enter the number of participants (n) excluded because they died on or before 31/12/2019 (i.e. participants who died and whose death is not likely to be related to COVID 19. We would expect this number to be 0 because these participants can have their data flow to the UK LLC, unless there is specific study policy precluding them.)")
+        documentation["Exclusions1"] = self.doc_block("2. Please enter the number of participants (n) excluded because they died on or before 31/12/2019", "(i.e. participants who died and whose death is not likely to be related to COVID 19. We would expect this number to be 0 because these participants can have their data flow to the UK LLC, unless there is specific study policy precluding them.)")
 
         # 8. ...
-        documentation["Exclusions2"] = self.doc_block("3. Please enter the number of participants (n) excluded because they died on or after 01/01/2020 (It is essential that data for participants who have died during the COVID 19 pandemic (on or after 01/01/2020) continue to flow to the UK LLC TRE, unless this directly violates Study policy. Therefore, we would expect this number to be 0)")
+        documentation["Exclusions2"] = self.doc_block("3. Please enter the number of participants (n) excluded because they died on or after 01/01/2020", "(It is essential that data for participants who have died during the COVID 19 pandemic (on or after 01/01/2020) continue to flow to the UK LLC TRE, unless this directly violates Study policy. Therefore, we would expect this number to be 0)")
 
         # 9. ...
         documentation["Exclusions3"] = self.doc_block("4. Please enter the number of participants (n) excluded because they have withdrawn from the LPS")
@@ -305,7 +305,7 @@ class MainUI:
         documentation["Exclusions4"] = self.doc_block("5. Please enter the number of participants (n) excluded because they have specifically dissented to the use of their data in the UK LLC TRE")
 
         # 11.
-        documentation["Exclusions5"] = self.doc_block("6. Please enter the number of participants (n) excluded because they have dissented to record linkage (i.e. NHS Digital) (While it is up to LPS whether they send data for participants who have dissented to record linkage (i.e. NHS Digital), please be aware that these participants can be sent to UK LLC with permissions set accordingly. Dissenting to record linkage does not preclude participants from the UK LLC resource, where study-collected data can be provided. )")
+        documentation["Exclusions5"] = self.doc_block("6. Please enter the number of participants (n) excluded because they have dissented to record linkage (i.e. NHS Digital)", "(While it is up to LPS whether they send data for participants who have dissented to record linkage (i.e. NHS Digital), please be aware that these participants can be sent to UK LLC with permissions set accordingly. Dissenting to record linkage does not preclude participants from the UK LLC resource, where study-collected data can be provided. )")
 
         # 12. ...
         documentation["Exclusions6"] = self.doc_block("7. Please enter the number of participants (n) excluded because appropriate governance has not been established")
