@@ -44,7 +44,7 @@ def load_labelled_file(filename):
         
         print(f'File contains {line_count} entries.')    
       
-    return data
+    return data, line_count
 
 
 def load_unlabelled_file(filename):
@@ -82,7 +82,7 @@ def load_unlabelled_file(filename):
             sf.error_output(out_filename, "Format Error", "Unexpected number of fields. Expected {}, present {}.".format(len(constants.FILE_FORMAT),
                 sf.reduce_output_list(sizes)), lines)
 
-    return data
+    return data, line_count
 
 def load_file(filename = False, UI = False):
     '''
@@ -128,12 +128,12 @@ def load_file(filename = False, UI = False):
             # 1. All headers are the same
             difference = [x for x in headers if x not in constants.FILE_FORMAT]
             if difference == [] and len(headers) == len(constants.FILE_FORMAT):
-                data = load_labelled_file(filename)
+                data, row_count = load_labelled_file(filename)
 
             # 2. No headers are the same (ie column names not included)
             elif len(difference) == len(headers):
                 print("Field names not included")
-                data = load_unlabelled_file(filename)
+                data, row_count = load_unlabelled_file(filename)
                 print("Warning: field names not provided")
                 sf.error_output(out_filename, "Warning: field names not provided", "Column field names are not explicitly stated. Field name is assumed from position.", [0])
 
@@ -143,8 +143,12 @@ def load_file(filename = False, UI = False):
                 sf.error_output(out_filename, "Unrecognised field names", "Column field name(s) {} are not as expected. Unable to continue.".format(", ".join(difference)), [0])
                 # Do not continue program
                 return
+
+        C_row_count = len(get_included_participants(data))
+
         # Progress milestone - loaded file contents
         if UI:
+            UI.update_row_counts(row_count, C_row_count)
             UI.update_progress_bar()
         
         data = sf.handle_Nones(data, out_filename)
@@ -168,6 +172,12 @@ def load_file(filename = False, UI = False):
 
 # ------------------------------------- 
 # Checker functions
+def get_included_participants(input_data):
+    '''
+    Reduce data to rows where ROW_STATUS == "C" and UKLLC_STATUS == 1
+    '''
+    return [row for row in input_data if (row["ROW_STATUS"].lower()=="c" and row["UKLLC_STATUS"] == "1")]
+
 
 def get_primary_rows(input_data):
     '''

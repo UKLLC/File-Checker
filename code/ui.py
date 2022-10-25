@@ -1,3 +1,4 @@
+from asyncio.proactor_events import constants
 from re import L
 import tkinter as tk
 from tkinter import Label, ttk
@@ -7,6 +8,7 @@ from turtle import bgcolor, width
 import shared_functions as sf
 import UK_LLC_File_1_Checker as f1
 import threading
+import constants
 
 
 class MainUI:
@@ -19,16 +21,27 @@ class MainUI:
         self.filename = sf.file_dialog()
         if self.filename == "":
             return
+
+        # wipe file 1 doc entries
+        self.reset_doc_entries()
+
         self.set_loaded_filename(self.filename)
 
         self.reset_progress_bar()
         self.reset_output()
-        # TODO
+        
         #wipe progress text
         self.reset_progress()
-        # wipe file 1 doc entries
+        self.documentation["File Name"][2].insert(0, self.filename.split("/")[-1])
+        # Insert LPS into field if matching
+        all_lps_ids = constants.UK_LLC_STUDY_CODES + constants.ACCEPTABLE_STUDY_CODES
+        for code in all_lps_ids:
+            if code in self.filename:
+                self.documentation["LPS"][2].insert(0, code)
+                break  
 
     def start_checks(self):
+        self.reset_output()
         if not self.filename: # If user has not yet loaded a file
             self.load_file1()
         if self.filename == "": # If file selection is cancelled
@@ -43,21 +56,24 @@ class MainUI:
         f1.load_file(self.filename, self)
         self.check_complete_txt()
 
-
     def show_output(self, out_file):
         content = open(out_file, mode="r").read()
         self.check_text.insert(tk.END, content)
         print(content)
 
-
     def update_progress_bar(self):
         self.root.update_idletasks()
         self.pb1['value'] += (100/12) + 0.001
 
-
     def get_loaded_filename(self):
         return self.loaded_filename
 
+    def update_row_counts(self, row_count, included_participants):
+        self.reset_doc_entry("Row Count")
+        self.reset_doc_entry("Total Included")
+        self.documentation["Row Count"][2].insert(0, row_count)
+        self.documentation["Total Included"][2].insert(0, included_participants)
+        
 
     ######################################################
     # reset processes
@@ -72,8 +88,13 @@ class MainUI:
     def reset_progress(self):
         self.checks_progress_txt.config(text = "")
 
-    def reset_doc(self):
-        pass
+    def reset_doc_entries(self):
+        for key in self.documentation.keys():
+            if key != "Date":
+                self.documentation[key][2].delete(0, "end")
+
+    def reset_doc_entry(self, key):
+        self.documentation[key][2].delete(0, "end")
 
     ######################################################
     def set_loaded_filename(self, filename):
@@ -210,7 +231,7 @@ class MainUI:
         
         # # Adding progress bar
         sub_row3 = tk.Frame(row3)
-        self.pb1 = ttk.Progressbar(sub_row3, orient=tk.HORIZONTAL, length=500, mode='determinate')
+        self.pb1 = ttk.Progressbar(sub_row3, orient=tk.HORIZONTAL, length=350, mode='determinate')
 
         # Add text for auto checks progress
         self.checks_progress_txt = tk.Label(row3, text = "")
@@ -251,7 +272,7 @@ class MainUI:
 
         #############################################
 
-        documentation = {}
+        self.documentation = {}
 
         #Documentation
         doc_header_row = tk.Frame(self.nested_frame)
@@ -274,47 +295,48 @@ class MainUI:
         sep2 = ttk.Separator(self.nested_frame, orient='horizontal')
         sep2.pack(fill='x', side = tk.TOP)
         # 1. Date - auto filled
-        documentation["Date"] = self.doc_block("Date:")
+        self.documentation["Date"] = self.doc_block("Date:")
+        self.documentation["Date"][2].insert(0, (datetime.now()).strftime("%d/%m/%Y"))
 
         # 2. File name - auto filled
-        documentation["File Name"] = self.doc_block("File Name:")
+        self.documentation["File Name"] = self.doc_block("File Name:")
 
         # 3. LPS - auto filled from file name? check if any LPS from the constants list is in the filename, if so add. 
         #    NOTE: check entered val is in constants list.
-        documentation["LPS"] = self.doc_block("LPS:")
+        self.documentation["LPS"] = self.doc_block("LPS:")
 
         # 4. Row count - auto filled
-        documentation["Row Count"] = self.doc_block("Row Count:")
+        self.documentation["Row Count"] = self.doc_block("Row Count:")
 
         # 5. date file uploaded to DHCW - user filled, format checked (or date select box?)
-        documentation["Upload Date"] = self.doc_block("Date File Uploaded to DHCW:")
+        self.documentation["Upload Date"] = self.doc_block("Date File Uploaded to DHCW:")
 
         # 6. ...
-        documentation["Total Participants"] = self.doc_block("1. Please enter the total number of participants (n) in the cohort (enrolled sample/headline denominator)")
+        self.documentation["Total Participants"] = self.doc_block("1. Please enter the total number of participants (n) in the cohort (enrolled sample/headline denominator)")
 
         # 7. ...
-        documentation["Exclusions1"] = self.doc_block("2. Please enter the number of participants (n) excluded because they died on or before 31/12/2019", "(i.e. participants who died and whose death is not likely to be related to COVID 19. We would expect this number to be 0 because these participants can have their data flow to the UK LLC, unless there is specific study policy precluding them.)")
+        self.documentation["Exclusions1"] = self.doc_block("2. Please enter the number of participants (n) excluded because they died on or before 31/12/2019", "(i.e. participants who died and whose death is not likely to be related to COVID 19. We would expect this number to be 0 because these participants can have their data flow to the UK LLC, unless there is specific study policy precluding them.)")
 
         # 8. ...
-        documentation["Exclusions2"] = self.doc_block("3. Please enter the number of participants (n) excluded because they died on or after 01/01/2020", "(It is essential that data for participants who have died during the COVID 19 pandemic (on or after 01/01/2020) continue to flow to the UK LLC TRE, unless this directly violates Study policy. Therefore, we would expect this number to be 0)")
+        self.documentation["Exclusions2"] = self.doc_block("3. Please enter the number of participants (n) excluded because they died on or after 01/01/2020", "(It is essential that data for participants who have died during the COVID 19 pandemic (on or after 01/01/2020) continue to flow to the UK LLC TRE, unless this directly violates Study policy. Therefore, we would expect this number to be 0)")
 
         # 9. ...
-        documentation["Exclusions3"] = self.doc_block("4. Please enter the number of participants (n) excluded because they have withdrawn from the LPS")
+        self.documentation["Exclusions3"] = self.doc_block("4. Please enter the number of participants (n) excluded because they have withdrawn from the LPS")
 
         # 10. ...
-        documentation["Exclusions4"] = self.doc_block("5. Please enter the number of participants (n) excluded because they have specifically dissented to the use of their data in the UK LLC TRE")
+        self.documentation["Exclusions4"] = self.doc_block("5. Please enter the number of participants (n) excluded because they have specifically dissented to the use of their data in the UK LLC TRE")
 
         # 11.
-        documentation["Exclusions5"] = self.doc_block("6. Please enter the number of participants (n) excluded because they have dissented to record linkage (i.e. NHS Digital)", "(While it is up to LPS whether they send data for participants who have dissented to record linkage (i.e. NHS Digital), please be aware that these participants can be sent to UK LLC with permissions set accordingly. Dissenting to record linkage does not preclude participants from the UK LLC resource, where study-collected data can be provided. )")
+        self.documentation["Exclusions5"] = self.doc_block("6. Please enter the number of participants (n) excluded because they have dissented to record linkage (i.e. NHS Digital)", "(While it is up to LPS whether they send data for participants who have dissented to record linkage (i.e. NHS Digital), please be aware that these participants can be sent to UK LLC with permissions set accordingly. Dissenting to record linkage does not preclude participants from the UK LLC resource, where study-collected data can be provided. )")
 
         # 12. ...
-        documentation["Exclusions6"] = self.doc_block("7. Please enter the number of participants (n) excluded because appropriate governance has not been established")
+        self.documentation["Exclusions6"] = self.doc_block("7. Please enter the number of participants (n) excluded because appropriate governance has not been established")
 
         # 13. ...
-        documentation["Exclusions7"] = self.doc_block("8. Please enter the number of participants (n) excluded for 'other' reasons")
+        self.documentation["Exclusions7"] = self.doc_block("8. Please enter the number of participants (n) excluded for 'other' reasons")
 
         #14. ...
-        documentation["Total Included"] = self.doc_block("9. The number of participants (n) included in the sample uploaded to NHS DHCW (i.e the number in your File 1 where UK LLC status (UKLLC_STATUS) is equal to 1 and Row_Status is equal to 'C')")
+        self.documentation["Total Included"] = self.doc_block("9. The number of participants (n) included in the sample uploaded to NHS DHCW (i.e the number in your File 1 where UK LLC status (UKLLC_STATUS) is equal to 1 and Row_Status is equal to 'C')")
 
         # TODO differentiate bold and reg text in doc_block
         #      Buttons and controls for submitting the docs
