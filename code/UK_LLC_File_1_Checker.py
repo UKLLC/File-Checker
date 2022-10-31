@@ -158,9 +158,9 @@ def load_file(filename = False, UI = False):
 
         content_checker(data, UI)
 
-        UI.show_output(out_filename)
         # Progress milestone - Output
         if UI:
+            UI.show_output(out_filename)
             UI.update_progress_bar()
         print("File 1 checks complete")
     

@@ -1,7 +1,8 @@
 from asyncio.proactor_events import constants
+from functools import total_ordering
 from re import L
 import tkinter as tk
-from tkinter import Label, ttk
+from tkinter import Label, messagebox, Toplevel, ttk
 from tkinter import font
 from datetime import datetime
 from turtle import bgcolor, width
@@ -9,6 +10,7 @@ import shared_functions as sf
 import UK_LLC_File_1_Checker as f1
 import threading
 import constants
+import csv
 
 
 class MainUI:
@@ -29,7 +31,9 @@ class MainUI:
 
         self.reset_progress_bar()
         self.reset_output()
-        
+        self.b2["state"] = "disabled"
+        self.error_text.config(text = "")
+
         #wipe progress text
         self.reset_progress()
         self.documentation["File Name"][2].insert(0, self.filename.split("/")[-1])
@@ -42,6 +46,7 @@ class MainUI:
 
     def start_checks(self):
         self.reset_output()
+        self.error_text.config(text = "")
         if not self.filename: # If user has not yet loaded a file
             self.load_file1()
         if self.filename == "": # If file selection is cancelled
@@ -51,6 +56,7 @@ class MainUI:
         except FileNotFoundError:
             print("File not loaded")
         self.check_in_progress_txt()
+        self.b2["state"] = "normal"
 
     def check_staging(self):
         f1.load_file(self.filename, self)
@@ -60,6 +66,11 @@ class MainUI:
         content = open(out_file, mode="r").read()
         self.check_text.insert(tk.END, content)
         print(content)
+        if content == "File passed all checks.":
+            self.file_passed_checks = 1
+        else:
+            self.file_passed_checks = 0
+            self.error_text.config(text = "Warning: automated checks detected problems with the file. \nOnly save and submit if you are certain the file is correct.")
 
     def update_progress_bar(self):
         self.root.update_idletasks()
@@ -140,19 +151,122 @@ class MainUI:
             desc2 = None
         inpt = tk.Entry(row)
         
-        row.pack(side = tk.TOP, fill = tk.X, padx=10, pady=2)
+        row.pack(side = tk.TOP, fill = tk.X, padx=10, pady=3)
         inpt.pack(side = tk.RIGHT)
         desc1.pack(side = tk.LEFT)
         if reg_txt:
             row2.pack(side = tk.TOP, fill = tk.X, padx=10, pady=2)
             desc2.pack(side = tk.LEFT)
-        
 
         self.separators.append(self.separator(self.nested_frame))
         return [row, desc1, inpt, desc2]
     
     #######################
 
+    def LPS_check(self):
+        lps = self.documentation["LPS"][2].get()
+        if lps in constants.UK_LLC_STUDY_CODES or lps in constants.ACCEPTABLE_STUDY_CODES:
+            return True
+        else:
+            return False
+
+    def sum_check(self):
+        # Error handle target
+        target = self.documentation["Total Participants"][2].get().strip()
+        if target == "":
+            target = 0
+        else:
+            target = int(target)
+        # Error handle excluded
+        excluded = 0
+        for key in self.documentation.keys():
+            if "Exclusion" in key:
+                # If field is empty, assume 0
+                val = self.documentation[key][2].get().strip()
+                if val == "":
+                    val = 0
+                excluded += int(val)
+        # Error handle included
+        included = int(self.documentation["Total Included"][2].get().strip())
+        if included == "":
+            included == 0
+        else:
+            included = int(included)
+        if excluded + included == target:
+            return True, excluded, included, target
+        else:
+            return False, excluded, included, target
+
+    def save(self):
+        self.continue_save = True
+        # Input checking 
+        # 1. Is the LPS valid? (warning)
+        txt1, txt2 = "", ""
+        lps_check = self.LPS_check()
+        if not lps_check:
+            lps = self.documentation["LPS"][2].get().strip()
+            if lps == "":
+                lps = "[None]"
+            txt1 = "Study name {} not recognised. Please make sure you have entered the agreed study identifier.".format(lps)
+
+        # 2. Is do the exclusions and count add up?
+        try:
+            sum_check, exc, inc, tar = self.sum_check()
+            if not sum_check:
+                txt2 = "Exclusions ({}) and inclusions ({}) do not sum to study participants (sum is {}, should be {}). Please make sure the values are correct.".format(exc, inc, exc+inc, tar)
+        except ValueError:
+            messagebox.showerror("Input error", "Participant input(s) can not be converted to integer. Please make sure input fields 1-9 are only numerical.")
+            return
+        
+        if not lps_check and not sum_check:
+            self.messagebox_warning("1: {}\n2: {}".format(txt1, txt2))
+        elif lps_check:
+            self.messagebox_warning("1: {}".format(txt1))
+        elif lps_check:
+            self.messagebox_warning("1: {}".format(txt2))
+
+        if self.continue_save:
+            
+            out_dict = {}
+            for key, value in self.documentation.items():
+                print(key, value[2].get())
+                out_dict[key] = value[2].get()
+            if self.file_passed_checks == 0: 
+                out_dict["valid file"] = "0"
+                out_dict["checker_output"] = self.check_text.get("1.0", "end")
+            else:
+                out_dict["valid file"] = "1"
+                out_dict["checker_output"] = ""
+
+            with open('File1_doc_{}.csv'.format((self.filename.split(".")[0]).split("/")[-1]), 'w') as f:
+                w = csv.DictWriter(f, out_dict.keys())
+                w.writeheader()
+                w.writerow(out_dict)
+            
+            messagebox.Message("Saved")
+
+    #######################
+
+    def warning_continue(self):
+        self.win.destroy()
+        self.continue_save = False
+
+    def warning_cancel(self):
+        self.win.destroy()
+        self.continue_save = True
+
+    def messagebox_warning(self, message):
+        self.win = tk.Toplevel()
+        self.win.title("Input Warning")
+        Label(self.win, text = message, wraplength = 200).pack()
+        button_row = tk.Frame(self.win)
+        button_row.pack(side = tk.TOP, fill= tk.X)
+        tk.Button(button_row, text='Continue', command=self.warning_continue).pack(side = tk.RIGHT)
+        tk.Button(button_row, text='Cancel', command=self.warning_cancel).pack(side = tk.RIGHT)
+    
+    def message_box
+
+    #######################
 
     def __init__(self):
 
@@ -216,8 +330,8 @@ class MainUI:
         b1 = tk.Button(row1, text = "Load File 1", command = self.load_file1, width = 15)
         self.loaded_file_txt = tk.Label(row1, text = "")
         
-        row1.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        b1.pack(side=tk.LEFT, padx=5, pady=5)
+        row1.pack(side=tk.TOP, fill=tk.X, padx=5, pady=3)
+        b1.pack(side=tk.LEFT, padx=5, pady=2)
         self.loaded_file_txt.pack(side = tk.RIGHT, padx=5)
 
         self.separators.append(self.separator(self.nested_frame))
@@ -237,7 +351,7 @@ class MainUI:
         self.checks_progress_txt = tk.Label(row3, text = "")
         
         row3.pack(side=tk.TOP, fill=tk.X, padx=5, pady =5)
-        b4.pack(side=tk.LEFT, padx=5, pady=5)
+        b4.pack(side=tk.LEFT, padx=5, pady=2)
         sub_row3.pack(side=tk.LEFT, fill=tk.X, padx=2)
         
         self.pb1.pack(side=tk.LEFT,expand=True)
@@ -286,9 +400,10 @@ class MainUI:
         sep1 = ttk.Separator(self.nested_frame,orient='horizontal')
         sep1.pack(fill='x')
 
-        doc_desc = tk.Label(doc_desc_row, text = "Placeholder text explaining what to do with file 1 documentation. It will probably be quite long, hence why i'm padding this debugging message out for size. Probably longer than this still. So lets chuck some more characters in. Is this enough yet? Nearly.", justify = tk.LEFT, wraplength=self.window_width-22)
+        doc_desc1 = tk.Label(doc_desc_row, text = "Please fill in the following fields regarding your loaded file 1. Some fields have been automatically filled where possible.", justify = tk.LEFT, wraplength=self.window_width-22)
+        doc_desc1 = tk.Label(doc_desc_row, text = "Please make certain the number of participants included in the sample and excluded from the sample add up to the total number of participants in the cohort. If you are unable to categorise exclusions, please include them in field 8: 'other'.", justify = tk.LEFT, wraplength=self.window_width-22)
         doc_desc_row.pack(side=tk.TOP, fill=tk.X,padx=5)
-        doc_desc.pack(side=tk.LEFT, fill = tk.X)
+        doc_desc1.pack(side=tk.LEFT, fill = tk.X)
 
 
         # We are going to explicitly specify each question in turn. No clever loops this time. 
@@ -299,26 +414,26 @@ class MainUI:
         self.documentation["Date"][2].insert(0, (datetime.now()).strftime("%d/%m/%Y"))
 
         # 2. File name - auto filled
-        self.documentation["File Name"] = self.doc_block("File Name:")
+        self.documentation["File Name"] = self.doc_block("File name:")
 
         # 3. LPS - auto filled from file name? check if any LPS from the constants list is in the filename, if so add. 
         #    NOTE: check entered val is in constants list.
-        self.documentation["LPS"] = self.doc_block("LPS:")
+        self.documentation["LPS"] = self.doc_block("Study name:")
 
         # 4. Row count - auto filled
-        self.documentation["Row Count"] = self.doc_block("Row Count:")
+        self.documentation["Row Count"] = self.doc_block("Row count:")
 
         # 5. date file uploaded to DHCW - user filled, format checked (or date select box?)
-        self.documentation["Upload Date"] = self.doc_block("Date File Uploaded to DHCW:")
+        self.documentation["Upload Date"] = self.doc_block("Expected date File 1 uploaded to DHCW:")
 
         # 6. ...
         self.documentation["Total Participants"] = self.doc_block("1. Please enter the total number of participants (n) in the cohort (enrolled sample/headline denominator)")
 
         # 7. ...
-        self.documentation["Exclusions1"] = self.doc_block("2. Please enter the number of participants (n) excluded because they died on or before 31/12/2019", "(i.e. participants who died and whose death is not likely to be related to COVID 19. We would expect this number to be 0 because these participants can have their data flow to the UK LLC, unless there is specific study policy precluding them.)")
+        self.documentation["Exclusions1"] = self.doc_block("2. Please enter the number of participants (n) excluded because they died on or before 31/12/2019", "i.e. participants who died and whose death is not likely to be related to COVID 19. We would expect this number to be 0 because these participants can have their data flow to the UK LLC, unless there is specific study policy precluding them.")
 
         # 8. ...
-        self.documentation["Exclusions2"] = self.doc_block("3. Please enter the number of participants (n) excluded because they died on or after 01/01/2020", "(It is essential that data for participants who have died during the COVID 19 pandemic (on or after 01/01/2020) continue to flow to the UK LLC TRE, unless this directly violates Study policy. Therefore, we would expect this number to be 0)")
+        self.documentation["Exclusions2"] = self.doc_block("3. Please enter the number of participants (n) excluded because they died on or after 01/01/2020", "It is essential that data for participants who have died during the COVID 19 pandemic (on or after 01/01/2020) continue to flow to the UK LLC TRE, unless this directly violates Study policy. Therefore, we would expect this number to be 0.")
 
         # 9. ...
         self.documentation["Exclusions3"] = self.doc_block("4. Please enter the number of participants (n) excluded because they have withdrawn from the LPS")
@@ -327,7 +442,7 @@ class MainUI:
         self.documentation["Exclusions4"] = self.doc_block("5. Please enter the number of participants (n) excluded because they have specifically dissented to the use of their data in the UK LLC TRE")
 
         # 11.
-        self.documentation["Exclusions5"] = self.doc_block("6. Please enter the number of participants (n) excluded because they have dissented to record linkage (i.e. NHS Digital)", "(While it is up to LPS whether they send data for participants who have dissented to record linkage (i.e. NHS Digital), please be aware that these participants can be sent to UK LLC with permissions set accordingly. Dissenting to record linkage does not preclude participants from the UK LLC resource, where study-collected data can be provided. )")
+        self.documentation["Exclusions5"] = self.doc_block("6. Please enter the number of participants (n) excluded because they have dissented to record linkage (i.e. NHS Digital)", "While it is up to LPS whether they send data for participants who have dissented to record linkage (i.e. NHS Digital), please be aware that these participants can be sent to UK LLC with permissions set accordingly. Dissenting to record linkage does not preclude participants from the UK LLC resource, where study-collected data can be provided.")
 
         # 12. ...
         self.documentation["Exclusions6"] = self.doc_block("7. Please enter the number of participants (n) excluded because appropriate governance has not been established")
@@ -338,17 +453,20 @@ class MainUI:
         #14. ...
         self.documentation["Total Included"] = self.doc_block("9. The number of participants (n) included in the sample uploaded to NHS DHCW (i.e the number in your File 1 where UK LLC status (UKLLC_STATUS) is equal to 1 and Row_Status is equal to 'C')")
 
-        # TODO differentiate bold and reg text in doc_block
-        #      Buttons and controls for submitting the docs
-        #      Entry fields locking and unlocking (and when to do so)
+        button_row = tk.Frame(self.nested_frame)
+        self.error_text = tk.Label(button_row, text = "", justify = tk.LEFT, wraplength=self.window_width-50)
+        self.b2 = tk.Button(button_row, text='Save & submit', font=(self.default_font_family,10), command=self.save)
+        self.b2["state"] = "disabled"
+        button_row.pack(side = tk.TOP, fill = tk.X, padx=5, pady=5)
+        self.error_text.pack(side=tk.LEFT, padx=5, pady=5)
+        self.b2.pack(side=tk.RIGHT, padx=5, pady=5)
 
-        #TODO insert 9.
-
-        b2 = tk.Button(self.nested_frame, text='Save')
-        b2.pack(side=tk.LEFT, padx=5, pady=5)
-        b3 = tk.Button(self.nested_frame, text='Quit', command=self.root.quit)
-        b3.pack(side=tk.LEFT, padx=5, pady=5)
-
+        self.separators.append(self.separator(self.nested_frame))
+        bottom_padding = tk.Frame(self.nested_frame)
+        bottom_text = tk.Label(bottom_padding, text ="")
+        bottom_padding.pack(side = tk.TOP, fill = tk.X, pady = 5)
+        bottom_text.pack(side=tk.BOTTOM, pady=5)
+        self.separators.append(self.separator(self.nested_frame))
 
         self.root.mainloop()
 
