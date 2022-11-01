@@ -1,4 +1,5 @@
 from asyncio.proactor_events import constants
+from audioop import mul
 from functools import total_ordering
 from re import L
 import tkinter as tk
@@ -11,6 +12,8 @@ import UK_LLC_File_1_Checker as f1
 import threading
 import constants
 import csv
+import threading
+import time
 
 
 class MainUI:
@@ -164,7 +167,7 @@ class MainUI:
     #######################
 
     def LPS_check(self):
-        lps = self.documentation["LPS"][2].get()
+        lps = self.documentation["LPS"][2].get().upper()
         if lps in constants.UK_LLC_STUDY_CODES or lps in constants.ACCEPTABLE_STUDY_CODES:
             return True
         else:
@@ -197,7 +200,7 @@ class MainUI:
         else:
             return False, excluded, included, target
 
-    def save(self):
+    def prep_save(self):
         self.continue_save = True
         # Input checking 
         # 1. Is the LPS valid? (warning)
@@ -218,15 +221,21 @@ class MainUI:
             messagebox.showerror("Input error", "Participant input(s) can not be converted to integer. Please make sure input fields 1-9 are only numerical.")
             return
         
+        
         if not lps_check and not sum_check:
-            self.messagebox_warning("1: {}\n2: {}".format(txt1, txt2))
-        elif lps_check:
-            self.messagebox_warning("1: {}".format(txt1))
-        elif lps_check:
+            self.lock = True
+            self.messagebox_warning("1: {}\n\n2: {}".format(txt1, txt2))
+        elif not lps_check:
+            self.messagebox_warning, args = ("1: {}".format(txt1))
+        elif not sum_check:
             self.messagebox_warning("1: {}".format(txt2))
+        else:
+            self.save()
+
+
+    def save(self):            
 
         if self.continue_save:
-            
             out_dict = {}
             for key, value in self.documentation.items():
                 print(key, value[2].get())
@@ -238,33 +247,40 @@ class MainUI:
                 out_dict["valid file"] = "1"
                 out_dict["checker_output"] = ""
 
-            with open('File1_doc_{}.csv'.format((self.filename.split(".")[0]).split("/")[-1]), 'w') as f:
+            save_name = 'File1_Doc_{}.csv'.format((self.filename.split(".")[0]).split("/")[-1])
+            with open(save_name, 'w') as f:
                 w = csv.DictWriter(f, out_dict.keys())
                 w.writeheader()
                 w.writerow(out_dict)
             
-            messagebox.Message("Saved")
+            messagebox.showinfo("Saved", "File 1 documentation saved as {}".format(save_name))
+            print("saved")
 
     #######################
 
     def warning_continue(self):
         self.win.destroy()
-        self.continue_save = False
+        print("saving")
+        self.save()
 
     def warning_cancel(self):
         self.win.destroy()
-        self.continue_save = True
+        print("cancelling save")
 
     def messagebox_warning(self, message):
+        print("in messagebox")
         self.win = tk.Toplevel()
+        self.win.geometry("+200+200")
+        self.win.resizable(False,False)
         self.win.title("Input Warning")
-        Label(self.win, text = message, wraplength = 200).pack()
+        ttk.Separator(self.win,orient='horizontal').pack(fill='x', side = tk.TOP)
+        tk.Label(self.win, text = message, wraplength = 300, justify=tk.LEFT, padx=5).pack()
         button_row = tk.Frame(self.win)
+        ttk.Separator(self.win,orient='horizontal').pack(fill='x', side = tk.TOP)
         button_row.pack(side = tk.TOP, fill= tk.X)
-        tk.Button(button_row, text='Continue', command=self.warning_continue).pack(side = tk.RIGHT)
-        tk.Button(button_row, text='Cancel', command=self.warning_cancel).pack(side = tk.RIGHT)
-    
-    def message_box
+        tk.Button(button_row, text='Save Anyway', command=self.warning_continue).pack(side = tk.RIGHT, padx=5, pady=5)
+        tk.Button(button_row, text='Cancel', command=self.warning_cancel).pack(side = tk.RIGHT, padx=5, pady=5)
+        print("Done messagebox")
 
     #######################
 
@@ -455,7 +471,7 @@ class MainUI:
 
         button_row = tk.Frame(self.nested_frame)
         self.error_text = tk.Label(button_row, text = "", justify = tk.LEFT, wraplength=self.window_width-50)
-        self.b2 = tk.Button(button_row, text='Save & submit', font=(self.default_font_family,10), command=self.save)
+        self.b2 = tk.Button(button_row, text='Save & submit', font=(self.default_font_family,10), command=self.prep_save)
         self.b2["state"] = "disabled"
         button_row.pack(side = tk.TOP, fill = tk.X, padx=5, pady=5)
         self.error_text.pack(side=tk.LEFT, padx=5, pady=5)
