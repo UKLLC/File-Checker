@@ -1,30 +1,23 @@
-from asyncio.proactor_events import constants
-from audioop import mul
-from functools import total_ordering
-from re import L
 import tkinter as tk
-from tkinter import Label, messagebox, Toplevel, ttk
+from tkinter import messagebox, ttk
 from tkinter import font
 from datetime import datetime
-from turtle import bgcolor, width
 import shared_functions as sf
 import UK_LLC_File_1_Checker as f1
 import threading
 import constants
-import csv
+import json
 import threading
-import time
+import os
 
 
-class MainUI:
-    def show_output(self, out_file):
-        content = open(out_file, mode="r").read()
-        self.check_text.insert(tk.END, content)
-        print(content)
-        
+class MainUI:        
     def load_file1(self):
+        '''
+        Open file dialog, save filename, reset UI and check for valid study code in the filename
+        '''
         self.filename = sf.file_dialog()
-        if self.filename == "":
+        if self.filename == "": # if file dialog is aborted
             return
 
         # wipe file 1 doc entries
@@ -32,8 +25,10 @@ class MainUI:
 
         self.set_loaded_filename(self.filename)
 
+        # Wipe outputs
         self.reset_progress_bar()
         self.reset_output()
+        # disable save button until checks are done
         self.b2["state"] = "disabled"
         self.error_text.config(text = "")
 
@@ -48,6 +43,9 @@ class MainUI:
                 break  
 
     def start_checks(self):
+        '''
+        Setup UI for checks and detatch thread
+        '''
         self.reset_output()
         self.error_text.config(text = "")
         if not self.filename: # If user has not yet loaded a file
@@ -62,10 +60,16 @@ class MainUI:
         self.b2["state"] = "normal"
 
     def check_staging(self):
+        '''
+        launch checks and update UI when done
+        '''
         f1.load_file(self.filename, self)
         self.check_complete_txt()
 
     def show_output(self, out_file):
+        '''
+        Load the file checker output and write to UI text field
+        '''
         content = open(out_file, mode="r").read()
         self.check_text.insert(tk.END, content)
         print(content)
@@ -76,6 +80,9 @@ class MainUI:
             self.error_text.config(text = "Warning: automated checks detected problems with the file. \nOnly save and submit if you are certain the file is correct.")
 
     def update_progress_bar(self):
+        '''
+        increment progress bar (1/12th at a time)
+        '''
         self.root.update_idletasks()
         self.pb1['value'] += (100/12) + 0.001
 
@@ -83,6 +90,9 @@ class MainUI:
         return self.loaded_filename
 
     def update_row_counts(self, row_count, included_participants):
+        '''
+        Auto fill 'Row Count' and 'Total Included' fields
+        '''
         self.reset_doc_entry("Row Count")
         self.reset_doc_entry("Total Included")
         self.documentation["Row Count"][2].insert(0, row_count)
@@ -104,7 +114,7 @@ class MainUI:
 
     def reset_doc_entries(self):
         for key in self.documentation.keys():
-            if key != "Date":
+            if key != "Date": # Skip reseting date 
                 self.documentation[key][2].delete(0, "end")
 
     def reset_doc_entry(self, key):
@@ -112,9 +122,12 @@ class MainUI:
 
     ######################################################
     def set_loaded_filename(self, filename):
+        '''
+        Display filename to UI. File paths are long, so cut middle parts until it fits.
+        '''
         self.loaded_filename = filename
         # Reduce name down to fit in window
-        while len(filename) > 70: # 70 characters is arbitrary
+        while len(filename) > 70: # Make the filename less than 70 characters. 70 characters is arbitrary
             parts = filename.split("/")
             mid = int(len(parts)/2)
             if mid % 2 == 1:
@@ -127,10 +140,8 @@ class MainUI:
             if not "..." in parts:
                 parts.insert(mid, "...")
             filename = "/".join(parts)
-            print(filename)
         self.loaded_file_txt.config(text = "loaded '{}'".format(filename))
         print("updated filename: {}".format(filename))
-
 
     def check_in_progress_txt(self):
         self.checks_progress_txt.config(text = "Checks in progress. Please wait.")
@@ -139,12 +150,17 @@ class MainUI:
         self.checks_progress_txt.config(text = "Checks completed.")
 
     def separator(self, parent):
+        '''
+        Insert line across UI
+        '''
         sep = ttk.Separator(parent, orient='horizontal')
         sep.pack(fill='x', side = tk.TOP)
         return sep
 
     def doc_block(self, bold_txt, reg_txt = False):
-
+        '''
+        Insert row of description and entry field into UI
+        '''
         row = tk.Frame(self.nested_frame)
         desc1 = tk.Label(row, text = bold_txt,wraplength=self.window_width-160, justify=tk.LEFT, font=(self.default_font_family,9,'bold'))
         if reg_txt:
@@ -167,6 +183,9 @@ class MainUI:
     #######################
 
     def LPS_check(self):
+        '''
+        Find out if entered LPS code is recognised (in constants)
+        '''
         lps = self.documentation["LPS"][2].get().upper()
         if lps in constants.UK_LLC_STUDY_CODES or lps in constants.ACCEPTABLE_STUDY_CODES:
             return True
@@ -174,6 +193,9 @@ class MainUI:
             return False
 
     def sum_check(self):
+        '''
+        check if sum(exclusions) + sum(inclusions) = total cohort participants
+        '''
         # Error handle target
         target = self.documentation["Total Participants"][2].get().strip()
         if target == "":
@@ -201,7 +223,11 @@ class MainUI:
             return False, excluded, included, target
 
     def prep_save(self):
+        '''
+        Pre save checks - determine whether ready to continue
+        '''
         self.continue_save = True
+        self.warning_save = False
         # Input checking 
         # 1. Is the LPS valid? (warning)
         txt1, txt2 = "", ""
@@ -221,12 +247,12 @@ class MainUI:
             messagebox.showerror("Input error", "Participant input(s) can not be converted to integer. Please make sure input fields 1-9 are only numerical.")
             return
         
-        
+        # If any checks failed, show warning window
         if not lps_check and not sum_check:
             self.lock = True
             self.messagebox_warning("1: {}\n\n2: {}".format(txt1, txt2))
         elif not lps_check:
-            self.messagebox_warning, args = ("1: {}".format(txt1))
+            self.messagebox_warning("1: {}".format(txt1))
         elif not sum_check:
             self.messagebox_warning("1: {}".format(txt2))
         else:
@@ -234,70 +260,79 @@ class MainUI:
 
 
     def save(self):            
-
+        '''
+        Set up user entry fields and checker output as a dictionary and write to json.
+        '''
+        
         if self.continue_save:
             out_dict = {}
+            # user entry fields
             for key, value in self.documentation.items():
-                print(key, value[2].get())
                 out_dict[key] = value[2].get()
+            # if file checker errors
             if self.file_passed_checks == 0: 
                 out_dict["valid file"] = "0"
                 out_dict["checker_output"] = self.check_text.get("1.0", "end")
+            # if file checker no errors
             else:
                 out_dict["valid file"] = "1"
                 out_dict["checker_output"] = ""
 
-            save_name = 'File1_Doc_{}.csv'.format((self.filename.split(".")[0]).split("/")[-1])
-            with open(save_name, 'w') as f:
-                w = csv.DictWriter(f, out_dict.keys())
-                w.writeheader()
-                w.writerow(out_dict)
+            # check if saved with warning
+            if self.warning_save:
+                out_dict["saved with warning"] = "1"
+            else:
+                out_dict["saved with warning"] = "0"
+
+
+            save_name = 'File1_Doc_{}.json'.format((self.filename.split(".")[0]).split("/")[-1])
+            curpath = os.path.abspath(os.curdir)
+            out_filename = os.path.join(curpath, "..", "outputs", save_name)
+            with open(out_filename, 'w') as f:
+                json.dump(out_dict, f)
             
             messagebox.showinfo("Saved", "File 1 documentation saved as {}".format(save_name))
-            print("saved")
+            print("Saved file {}".format(save_name))
 
     #######################
 
     def warning_continue(self):
         self.win.destroy()
-        print("saving")
+        print("Continuing save")
+        self.warning_save = True
         self.save()
 
     def warning_cancel(self):
         self.win.destroy()
-        print("cancelling save")
+        print("Cancelling save")
 
     def messagebox_warning(self, message):
-        print("in messagebox")
+        '''
+        Custom warning window with button to continue save or cancel
+        '''
         self.win = tk.Toplevel()
         self.win.geometry("+200+200")
         self.win.resizable(False,False)
         self.win.title("Input Warning")
         ttk.Separator(self.win,orient='horizontal').pack(fill='x', side = tk.TOP)
         tk.Label(self.win, text = message, wraplength = 300, justify=tk.LEFT, padx=5).pack()
+        
         button_row = tk.Frame(self.win)
         ttk.Separator(self.win,orient='horizontal').pack(fill='x', side = tk.TOP)
         button_row.pack(side = tk.TOP, fill= tk.X)
         tk.Button(button_row, text='Save Anyway', command=self.warning_continue).pack(side = tk.RIGHT, padx=5, pady=5)
-        tk.Button(button_row, text='Cancel', command=self.warning_cancel).pack(side = tk.RIGHT, padx=5, pady=5)
-        print("Done messagebox")
+        tk.Button(button_row, text='Return', command=self.warning_cancel).pack(side = tk.RIGHT, padx=5, pady=5)
 
     #######################
 
     def __init__(self):
-
         self.window_width = 700
-        # init filename to None
         self.filename = None
-
         self.separators = []
 
         self.root = tk.Tk()
-        #TODO make y dimensions scre
-        # en size & insert scroll bar on window
         self.root.geometry("{}x700".format(self.window_width))
         self.root.resizable(False, True)
-        print(self.root.winfo_width())
 
         self.root.title('UKLLC File 1 Checker and Documentation')
 
@@ -322,10 +357,10 @@ class MainUI:
         # Add that New Frame a Window In The Canvas
         window_canvas.create_window((0,0),window= self.nested_frame, anchor="nw")
 
-
         default_font = font.nametofont("TkDefaultFont")  # Get default font value into Font object
         self.default_font_family = default_font.actual()["family"]
 
+        # Setup rows of checker section
         header = tk.Frame(self.nested_frame)
         row0 = tk.Frame(self.nested_frame)
         row1 = tk.Frame(self.nested_frame)
@@ -333,12 +368,14 @@ class MainUI:
         row3 = tk.Frame(self.nested_frame)
         row4 = tk.Frame(self.nested_frame)
 
+        # Title row
         header_txt = tk.Label(header, text = "File 1 Integrity Checks",font=(self.default_font_family,12,'bold'))
         header.pack(side=tk.TOP, fill=tk.X,padx=5)
         header_txt.pack(side=tk.LEFT, padx=5)
 
         self.separators.append(self.separator(self.nested_frame))
 
+        # Load file button section
         intro_txt = tk.Label(row0, text="Please select your File 1. The file must be in CSV format.", justify=tk.LEFT)
         row0.pack(side=tk.TOP, fill=tk.X, padx=5)
         intro_txt.pack(side = tk.LEFT, padx=5)
@@ -352,6 +389,7 @@ class MainUI:
 
         self.separators.append(self.separator(self.nested_frame))
 
+        # Start checks section
         auto_checks_txt = tk.Label(row2, text="Click 'Start' to begin automated file 1 integrity checks.\nPlease wait until the automated checks are completed before filling out the File 1 documentation section", justify=tk.LEFT)
         row2.pack(side=tk.TOP, fill=tk.X, padx=5)
         auto_checks_txt.pack(side = tk.LEFT, padx=5)
@@ -407,7 +445,6 @@ class MainUI:
         #Documentation
         doc_header_row = tk.Frame(self.nested_frame)
         doc_desc_row = tk.Frame(self.nested_frame)
-        doc_actions_row = tk.Frame(self.nested_frame)
 
         doc_header_txt = tk.Label(doc_header_row, text = "File 1 Documentation",font=(self.default_font_family,12,'bold'))
         doc_header_row.pack(side=tk.TOP, fill=tk.X,padx=5)
@@ -425,58 +462,34 @@ class MainUI:
         # We are going to explicitly specify each question in turn. No clever loops this time. 
         sep2 = ttk.Separator(self.nested_frame, orient='horizontal')
         sep2.pack(fill='x', side = tk.TOP)
-        # 1. Date - auto filled
+
+        # Entry field rows:
         self.documentation["Date"] = self.doc_block("Date:")
         self.documentation["Date"][2].insert(0, (datetime.now()).strftime("%d/%m/%Y"))
-
-        # 2. File name - auto filled
         self.documentation["File Name"] = self.doc_block("File name:")
-
-        # 3. LPS - auto filled from file name? check if any LPS from the constants list is in the filename, if so add. 
-        #    NOTE: check entered val is in constants list.
         self.documentation["LPS"] = self.doc_block("Study name:")
-
-        # 4. Row count - auto filled
         self.documentation["Row Count"] = self.doc_block("Row count:")
-
-        # 5. date file uploaded to DHCW - user filled, format checked (or date select box?)
         self.documentation["Upload Date"] = self.doc_block("Expected date File 1 uploaded to DHCW:")
-
-        # 6. ...
         self.documentation["Total Participants"] = self.doc_block("1. Please enter the total number of participants (n) in the cohort (enrolled sample/headline denominator)")
-
-        # 7. ...
         self.documentation["Exclusions1"] = self.doc_block("2. Please enter the number of participants (n) excluded because they died on or before 31/12/2019", "i.e. participants who died and whose death is not likely to be related to COVID 19. We would expect this number to be 0 because these participants can have their data flow to the UK LLC, unless there is specific study policy precluding them.")
-
-        # 8. ...
         self.documentation["Exclusions2"] = self.doc_block("3. Please enter the number of participants (n) excluded because they died on or after 01/01/2020", "It is essential that data for participants who have died during the COVID 19 pandemic (on or after 01/01/2020) continue to flow to the UK LLC TRE, unless this directly violates Study policy. Therefore, we would expect this number to be 0.")
-
-        # 9. ...
         self.documentation["Exclusions3"] = self.doc_block("4. Please enter the number of participants (n) excluded because they have withdrawn from the LPS")
-
-        # 10. ...
         self.documentation["Exclusions4"] = self.doc_block("5. Please enter the number of participants (n) excluded because they have specifically dissented to the use of their data in the UK LLC TRE")
-
-        # 11.
         self.documentation["Exclusions5"] = self.doc_block("6. Please enter the number of participants (n) excluded because they have dissented to record linkage (i.e. NHS Digital)", "While it is up to LPS whether they send data for participants who have dissented to record linkage (i.e. NHS Digital), please be aware that these participants can be sent to UK LLC with permissions set accordingly. Dissenting to record linkage does not preclude participants from the UK LLC resource, where study-collected data can be provided.")
-
-        # 12. ...
         self.documentation["Exclusions6"] = self.doc_block("7. Please enter the number of participants (n) excluded because appropriate governance has not been established")
-
-        # 13. ...
         self.documentation["Exclusions7"] = self.doc_block("8. Please enter the number of participants (n) excluded for 'other' reasons")
-
-        #14. ...
         self.documentation["Total Included"] = self.doc_block("9. The number of participants (n) included in the sample uploaded to NHS DHCW (i.e the number in your File 1 where UK LLC status (UKLLC_STATUS) is equal to 1 and Row_Status is equal to 'C')")
 
+        # Save section
         button_row = tk.Frame(self.nested_frame)
         self.error_text = tk.Label(button_row, text = "", justify = tk.LEFT, wraplength=self.window_width-50)
         self.b2 = tk.Button(button_row, text='Save & submit', font=(self.default_font_family,10), command=self.prep_save)
-        self.b2["state"] = "disabled"
+        self.b2["state"] = "disabled" # disable at first, enable later once file has been checked
         button_row.pack(side = tk.TOP, fill = tk.X, padx=5, pady=5)
         self.error_text.pack(side=tk.LEFT, padx=5, pady=5)
         self.b2.pack(side=tk.RIGHT, padx=5, pady=5)
 
+        # Bottom padding to keep content onscreen when window is fullscreen
         self.separators.append(self.separator(self.nested_frame))
         bottom_padding = tk.Frame(self.nested_frame)
         bottom_text = tk.Label(bottom_padding, text ="")
