@@ -106,7 +106,12 @@ def load_file(filename = False, UI = False):
     global out_filename
     out_filename = ("{}_Output_Log".format(os.path.split(filename)[1].split(".")[0])) + datetime.now().strftime("%H%M%S")+".txt"
     curpath = os.path.abspath(os.curdir)
-    out_filename = os.path.join(curpath, "..", "outputs", out_filename)
+    if "outputs" in os.listdir(curpath): # If running from root (same level as outputs folder)
+        out_filename = os.path.join(curpath, "outputs", out_filename)
+    else:
+        out_filename = os.path.join(curpath, "..", "outputs", out_filename)
+    print(out_filename)
+    print(os.listdir(curpath))
     
     check_filename(filename)
     # Progress milestone - checked filename

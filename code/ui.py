@@ -287,7 +287,12 @@ class MainUI:
 
             save_name = 'File1_Doc_{}.json'.format((self.filename.split(".")[0]).split("/")[-1])
             curpath = os.path.abspath(os.curdir)
-            out_filename = os.path.join(curpath, "..", "outputs", save_name)
+            if "outputs" in os.listdir(curpath): # If running from root (same level as outputs folder)
+                out_filename = os.path.join(curpath, "outputs", save_name)
+            else:
+                out_filename = os.path.join(curpath, "..", "outputs", save_name)
+            print(out_filename)
+            print(os.listdir(curpath))
             with open(out_filename, 'w') as f:
                 json.dump(out_dict, f)
             
