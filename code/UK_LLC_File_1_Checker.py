@@ -263,7 +263,7 @@ def check_studyID(input_data):
         if studyIDs.count(id) > 1:
             problem_ids.append(id)
     if problem_ids != []:
-        sf.error_output(out_filename, "Duplicate Current Record", "File contains multiple rows where ROW_STATUS = 'C' for STUDY_ID(s) {}.".format(sf.reduce_output_list(list(set(problem_ids)))))
+        sf.error_output(out_filename, "Duplicate Current Record Error", "File contains multiple rows where ROW_STATUS = 'C' for STUDY_ID(s) {}.".format(sf.reduce_output_list(list(set(problem_ids)))))
 
 def check_current_case(input_data):
     '''
@@ -277,7 +277,7 @@ def check_current_case(input_data):
         if id not in primary_studyIDs:
             problem_ids.append(id)
     if problem_ids != []:
-        sf.error_output(out_filename, "No Current Record", "File contains no current record for STUDY_ID(s) {}".format(sf.reduce_output_list(list(set(problem_ids)))))
+        sf.error_output(out_filename, "No Current Record Error", "File contains no current record for STUDY_ID(s) {}".format(sf.reduce_output_list(list(set(problem_ids)))))
 
 def check_NHS_number(input_data):
     '''

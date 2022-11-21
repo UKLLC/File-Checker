@@ -291,8 +291,6 @@ class MainUI:
                 out_filename = os.path.join(curpath, "outputs", save_name)
             else:
                 out_filename = os.path.join(curpath, "..", "outputs", save_name)
-            print(out_filename)
-            print(os.listdir(curpath))
             with open(out_filename, 'w') as f:
                 json.dump(out_dict, f)
             
