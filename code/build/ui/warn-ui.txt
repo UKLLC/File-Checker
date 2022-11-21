@@ -15,7 +15,7 @@ IMPORTANT: Do NOT post this list to the issue-tracker. Use it as a basis for
            yourself tracking down the missing module. Thanks!
 
 missing module named 'multiprocessing.forking' - imported by X:\Program Files\Anaconda\Lib\site-packages\PyInstaller\loader\rthooks\pyi_rth_multiprocessing.py (optional)
-missing module named org - imported by copy (optional)
+missing module named 'org.python' - imported by copy (optional), xml.sax (delayed, conditional)
 missing module named _frozen_importlib_external - imported by importlib._bootstrap (delayed), importlib (optional), importlib.abc (optional), zipimport (top-level)
 excluded module named _frozen_importlib - imported by importlib (optional), importlib.abc (optional), zipimport (top-level)
 missing module named _posixshmem - imported by multiprocessing.resource_tracker (conditional), multiprocessing.shared_memory (conditional)
@@ -32,7 +32,7 @@ missing module named System - imported by pyreadline.clipboard.ironpython_clipbo
 missing module named StringIO - imported by pyreadline.py3k_compat (conditional)
 missing module named IronPythonConsole - imported by pyreadline.console.ironpython_console (top-level)
 missing module named clr - imported by pyreadline.clipboard.ironpython_clipboard (top-level), pyreadline.console.ironpython_console (top-level)
-missing module named 'org.python' - imported by pickle (optional), xml.sax (delayed, conditional)
+missing module named org - imported by pickle (optional)
 missing module named posix - imported by os (conditional, optional), shutil (conditional)
 missing module named resource - imported by posix (top-level), test.support (optional)
 missing module named grp - imported by shutil (optional), tarfile (optional), pathlib (delayed)

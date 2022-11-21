@@ -222,7 +222,7 @@ def check_filename(filename):
     filename_sections = os.path.split(filename)[1].split("_")
     number_of_sections = len(filename_sections)
     if number_of_sections != 4 and number_of_sections !=5:
-        sf.error_output(out_filename, "File Naming Error", "Filename does not match the naming convention. Should include 4 underscore separated sections.")
+        sf.error_output(out_filename, "File Naming Error", "Filename does not match the naming convention. Should include 4 underscore separated sections in the form <study code>_FILE1_<version number>_<date YYYYMMDD>.")
         return
 
     if number_of_sections == 4:

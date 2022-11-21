@@ -162,19 +162,18 @@ class MainUI:
         Insert row of description and entry field into UI
         '''
         row = tk.Frame(self.nested_frame)
-        desc1 = tk.Label(row, text = bold_txt,wraplength=self.window_width-160, justify=tk.LEFT, font=(self.default_font_family,9,'bold'))
+        desc1 = tk.Label(row, text = bold_txt,wraplength=self.window_width-170, justify=tk.LEFT, font=(self.default_font_family,9,'bold'))
         if reg_txt:
             row2 = tk.Frame(self.nested_frame)
-            desc2 = tk.Label(row2, text = reg_txt,wraplength=self.window_width-160, justify=tk.LEFT)
+            desc2 = tk.Label(row2, text = reg_txt,wraplength=self.window_width-170, justify=tk.LEFT)
         else:
             desc2 = None
         inpt = tk.Entry(row)
-        
-        row.pack(side = tk.TOP, fill = tk.X, padx=10, pady=3)
         inpt.pack(side = tk.RIGHT)
+        row.pack(side = tk.TOP, fill = tk.X, padx=12, pady=3)
         desc1.pack(side = tk.LEFT)
         if reg_txt:
-            row2.pack(side = tk.TOP, fill = tk.X, padx=10, pady=2)
+            row2.pack(side = tk.TOP, fill = tk.X, padx=12, pady=2)
             desc2.pack(side = tk.LEFT)
 
         self.separators.append(self.separator(self.nested_frame))
@@ -488,7 +487,7 @@ class MainUI:
         self.error_text = tk.Label(button_row, text = "", justify = tk.LEFT, wraplength=self.window_width-50)
         self.b2 = tk.Button(button_row, text='Save & submit', font=(self.default_font_family,10), command=self.prep_save)
         self.b2["state"] = "disabled" # disable at first, enable later once file has been checked
-        button_row.pack(side = tk.TOP, fill = tk.X, padx=5, pady=5)
+        button_row.pack(side = tk.TOP, fill = tk.X, padx=10, pady=5)
         self.error_text.pack(side=tk.LEFT, padx=5, pady=5)
         self.b2.pack(side=tk.RIGHT, padx=5, pady=5)
 
