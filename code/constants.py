@@ -31,6 +31,7 @@ FILE_FORMAT = [
 ]
 
 UK_LLC_STUDY_CODES = [
+    "AIRWAVE",
     "ALSPAC",
     "BCS70",
     "BIB",

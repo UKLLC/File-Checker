@@ -34,7 +34,7 @@ def verify_date_format_DDMMYYYY(date):
     except ValueError:
         # Though 00/00/[year] is not strictly a valid date, it is acceptable. 
         pattern = "00\/00\/[1,2][0-9]{3}|00\/[0,1][0-9]\/[1,2][0-9]{3}"
-        if re.seach(pattern, date):
+        if re.search(pattern, date):
             return True
         else:
             return False
@@ -84,10 +84,6 @@ def error_output(out_filename, error_type = "Error", message = "Unable to verify
         message = message + "\nLine(s) "+ ", ".join(map(str,reduce_output_list(affected_lines)))
 
     message = message +"\n"
-    # May or may not want to include message boxes. Potetentially not, unless outputs are cleaned up.
-    #ctypes.windll.user32.MessageBoxW(0, message, error_type, 1)
-
-    curpath = os.path.abspath(os.curdir)
 
     if not os.path.exists(out_filename):
         open(out_filename, "w")

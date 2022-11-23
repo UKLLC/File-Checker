@@ -44,7 +44,7 @@ def load_labelled_file(filename):
         
         print(f'File contains {line_count} entries.')    
       
-    return data
+    return data, line_count
 
 
 def load_unlabelled_file(filename):
@@ -82,9 +82,9 @@ def load_unlabelled_file(filename):
             sf.error_output(out_filename, "Format Error", "Unexpected number of fields. Expected {}, present {}.".format(len(constants.FILE_FORMAT),
                 sf.reduce_output_list(sizes)), lines)
 
-    return data
+    return data, line_count
 
-def load_file(filename = False):
+def load_file(filename = False, UI = False):
     '''
     Get filename from dialog. Check headers of columns.
     If all variable names are as expected, load in given format.
@@ -93,30 +93,54 @@ def load_file(filename = False):
 
     '''
     print("Opening file dialog")
-    if not filename: # if filename has not been passed (would only be for debugging/testing)
+    if not filename: # if filename has not been passed 
         filename = sf.file_dialog()
 
-    global out_filename
-    out_filename = ("{}_Output_Log".format(os.path.split(filename)[1].split(".")[0]))+STR_TIME
+    if UI:
+        UI.set_loaded_filename(filename)
 
+    # Progress milestone - loaded file
+    if UI:
+        UI.update_progress_bar()
+
+    global out_filename
+    out_filename = ("{}_Output_Log".format(os.path.split(filename)[1].split(".")[0])) + datetime.now().strftime("%H%M%S")+".txt"
+    curpath = os.path.abspath(os.curdir)
+    if "outputs" in os.listdir(curpath): # If running from root (same level as outputs folder)
+        out_filename = os.path.join(curpath, "outputs", out_filename)
+    else:
+        out_filename = os.path.join(curpath, "..", "outputs", out_filename)
+    print(out_filename)
+    print(os.listdir(curpath))
+    
     check_filename(filename)
+    # Progress milestone - checked filename
+    if UI:
+        UI.update_progress_bar()
+
     check_encoding(filename)
+    # Progress milestone - checked encoding
+    if UI:
+        UI.update_progress_bar()
 
     try:
         print("Loading data from file")
         with open(filename, encoding = "utf-8", errors="ignore") as csv_file:
             csv_reader = csv.DictReader(csv_file)
             headers = csv_reader.fieldnames
+            # Progress milestone - loaded file contents and headers
+            if UI:
+                UI.update_progress_bar()
 
             # 1. All headers are the same
             difference = [x for x in headers if x not in constants.FILE_FORMAT]
             if difference == [] and len(headers) == len(constants.FILE_FORMAT):
-                data = load_labelled_file(filename)
+                data, row_count = load_labelled_file(filename)
 
             # 2. No headers are the same (ie column names not included)
             elif len(difference) == len(headers):
                 print("Field names not included")
-                data = load_unlabelled_file(filename)
+                data, row_count = load_unlabelled_file(filename)
                 print("Warning: field names not provided")
                 sf.error_output(out_filename, "Warning: field names not provided", "Column field names are not explicitly stated. Field name is assumed from position.", [0])
 
@@ -126,10 +150,27 @@ def load_file(filename = False):
                 sf.error_output(out_filename, "Unrecognised field names", "Column field name(s) {} are not as expected. Unable to continue.".format(", ".join(difference)), [0])
                 # Do not continue program
                 return
+
+        C_row_count = len(get_included_participants(data))
+
+        # Progress milestone - loaded file contents
+        if UI:
+            UI.update_row_counts(row_count, C_row_count)
+            UI.update_progress_bar()
+        
         data = sf.handle_Nones(data, out_filename)
+        # Progress milestone - formated Nones to string
+        if UI:
+            UI.update_progress_bar()
 
-        content_checker(data)
+        content_checker(data, UI)
 
+        # Progress milestone - Output
+        if UI:
+            UI.show_output(out_filename)
+            UI.update_progress_bar()
+        print("File 1 checks complete")
+    
     except OSError as e:
         print("Unable to read file")
         sf.error_output(out_filename, "Load Error", "Unable to read file")
@@ -138,6 +179,12 @@ def load_file(filename = False):
 
 # ------------------------------------- 
 # Checker functions
+def get_included_participants(input_data):
+    '''
+    Reduce data to rows where ROW_STATUS == "C" and UKLLC_STATUS == 1
+    '''
+    return [row for row in input_data if (row["ROW_STATUS"].lower()=="c" and row["UKLLC_STATUS"] == "1")]
+
 
 def get_primary_rows(input_data):
     '''
@@ -175,7 +222,7 @@ def check_filename(filename):
     filename_sections = os.path.split(filename)[1].split("_")
     number_of_sections = len(filename_sections)
     if number_of_sections != 4 and number_of_sections !=5:
-        sf.error_output(out_filename, "File Naming Error", "Filename does not match the naming convention. Should include 4 underscore separated sections.")
+        sf.error_output(out_filename, "File Naming Error", "Filename does not match the naming convention. Should include 4 underscore separated sections in the form <study code>_FILE1_<version number>_<date YYYYMMDD>.")
         return
 
     if number_of_sections == 4:
@@ -216,7 +263,7 @@ def check_studyID(input_data):
         if studyIDs.count(id) > 1:
             problem_ids.append(id)
     if problem_ids != []:
-        sf.error_output(out_filename, "Duplicate Current Record", "File contains multiple rows where ROW_STATUS = 'C' for STUDY_ID(s) {}.".format(sf.reduce_output_list(list(set(problem_ids)))))
+        sf.error_output(out_filename, "Duplicate Current Record Error", "File contains multiple rows where ROW_STATUS = 'C' for STUDY_ID(s) {}.".format(sf.reduce_output_list(list(set(problem_ids)))))
 
 def check_current_case(input_data):
     '''
@@ -230,7 +277,7 @@ def check_current_case(input_data):
         if id not in primary_studyIDs:
             problem_ids.append(id)
     if problem_ids != []:
-        sf.error_output(out_filename, "No Current Record", "File contains no current record for STUDY_ID(s) {}".format(sf.reduce_output_list(list(set(problem_ids)))))
+        sf.error_output(out_filename, "No Current Record Error", "File contains no current record for STUDY_ID(s) {}".format(sf.reduce_output_list(list(set(problem_ids)))))
 
 def check_NHS_number(input_data):
     '''
@@ -413,23 +460,37 @@ def check_vars(input_data):
     check_postcode(input_data)
 
 
-def content_checker(input_data):
+def content_checker(input_data, UI = False):
     check_studyID(input_data)
+    # Progress milestone - checked IDs
+    if UI:
+        UI.update_progress_bar()
+
     check_current_case(input_data)
+    # Progress milestone - checked current and historical rows
+    if UI:
+        UI.update_progress_bar()
+
     check_dates(input_data)
+    # Progress milestone - checked dates
+    if UI:
+        UI.update_progress_bar()
+
     check_vars(input_data)
+    # Progress milestone - checked variable names
+    if UI:
+        UI.update_progress_bar()
 
     #If no errors logged
     if not os.path.exists(out_filename):
         f = open( out_filename, "w")
         f.write("File passed all checks.")
-
+    # Progress milestone - checked variable names
+    if UI:
+        UI.update_progress_bar()
 
 
 if __name__ == "__main__":
-
-    STR_TIME = datetime.now().strftime("%H%M%S")+".txt"
-
     input_data = load_file()
 
 
