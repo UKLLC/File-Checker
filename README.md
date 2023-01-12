@@ -11,7 +11,7 @@ to avoid complications loading them into the UK LLC databank.
 ## User Guide
 
 Documentation for running the checkers is available in [File Checker User Guide.pdf](https://github.com/UKLLC/File-Checker/blob/main/File%20Checker%20User%20Guide.pdf) 
-or a video walkthrough is available on our [YouTube channel](https://youtu.be/E3M1bAFHrNs).
+or a video walkthrough is available on our [YouTube channel](https://youtu.be/C3UN4FDNDWk).
 
 ## Download
 
