@@ -149,6 +149,10 @@ def load_file(filename = False, UI = False):
                 print("Unrecognised field names")
                 sf.error_output(out_filename, "Unrecognised field names", "Column field name(s) {} are not as expected. Unable to continue.".format(", ".join(difference)), [0])
                 # Do not continue program
+                if UI:
+                    UI.show_output(out_filename)
+                    for i in range(8):
+                        UI.update_progress_bar()  
                 return
 
         C_row_count = len(get_included_participants(data))

@@ -92,6 +92,13 @@ def error_output(out_filename, error_type = "Error", message = "Unable to verify
 
     f.write(error_type)
     f.write("\n")
-    f.write(message)
+    try:
+        f.write(message)
+    except UnicodeEncodeError:
+        print("Encountered an error attempting to write '{}' to file due to an unrecognised character.".format(message))
+        #encode() method
+        print(message.encode(encoding="ascii", errors="replace").decode())
+        cleaned_message = message.encode(encoding="ascii", errors="replace").decode()
+        f.write(cleaned_message)
     f.write("--------------------\n")
-    f.close(), 1
+    f.close()
