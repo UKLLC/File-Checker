@@ -16,12 +16,9 @@ if __name__ == "__main__":
     target_file = sf.file_dialog()
 
     csv_file = pd.read_csv(target_file, encoding="utf-8")
-    print([col for col in csv_file.columns])
     csv_file.columns = [str(col).encode('ascii', 'ignore').decode('ascii') for col in csv_file.columns]
     for column in csv_file.columns:
         csv_file[column] = [str(col).encode('ascii', 'ignore').decode('ascii') for col in csv_file[column]]
         
     new_name = target_file.split(".")[0] + "_cleaned2.csv"
     csv_file.to_csv(new_name, encoding="ascii", index = False)
-
-    print(csv_file.columns)
