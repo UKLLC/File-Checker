@@ -10,19 +10,18 @@
 
 import csv
 import shared_functions as sf
+import pandas as pd
 
 if __name__ == "__main__":
     target_file = sf.file_dialog()
-    rows = []
-    with open(target_file, encoding="utf-8", errors="ignore") as csv_file: 
-        csv_reader = csv.reader(csv_file)
-        for row in csv_reader:
-            rows.append(",".join(row).encode(encoding="ascii", errors="ignore").decode())
 
-    new_name = target_file.split(".")[0] + "_cleaned.csv"
-    with open(new_name, "w", newline = "") as csv_file:
-        csv_writer = csv.writer(csv_file, delimiter =',')
-        for row in rows:
-            row_list = row.split(",")
-            csv_writer.writerow(row_list)
-    #file1.to_csv(new_name)
+    csv_file = pd.read_csv(target_file, encoding="utf-8")
+    print([col for col in csv_file.columns])
+    csv_file.columns = [str(col).encode('ascii', 'ignore').decode('ascii') for col in csv_file.columns]
+    for column in csv_file.columns:
+        csv_file[column] = [str(col).encode('ascii', 'ignore').decode('ascii') for col in csv_file[column]]
+        
+    new_name = target_file.split(".")[0] + "_cleaned2.csv"
+    csv_file.to_csv(new_name, encoding="ascii", index = False)
+
+    print(csv_file.columns)
