@@ -1,2 +1,3 @@
 pyinstaller --onefile UK_LLC_File_1_Checker.py
 pyinstaller --onefile ui.py
+python -m PyInstaller myscript.py --onefile

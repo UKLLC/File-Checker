@@ -81,7 +81,7 @@ def error_output(out_filename, error_type = "Error", message = "Unable to verify
     Write txt ouptut of details
     '''
     if affected_lines != []: #if the list of affected lines is not null
-        message = message + "\nLine(s) "+ ", ".join(map(str,reduce_output_list(affected_lines)))
+        message = message + "\nLine(s) (ignoring header) "+ ", ".join(map(str,reduce_output_list(affected_lines)))
 
     message = message +"\n"
 

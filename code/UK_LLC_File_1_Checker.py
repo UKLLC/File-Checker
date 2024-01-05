@@ -357,8 +357,11 @@ def check_dates(input_data):
         problem_rows = []
         for date_index in range(len(input_data)):
             date = input_data[date_index][date_field]
+            row_status = input_data[date_index]["ROW_STATUS"]
             if len(date) > 1: 
                 if not sf.verify_date_format_DDMMYYYY(date):
+                    if "00/00/0000" in date and row_status == "H": # edge case where null date is valid only if row status is H
+                        continue # no error    
                     problem_rows.append(date_index+1)
         if problem_rows != []:
             sf.error_output(out_filename, "Date Format Error", "Invalid format for field {}. Date should be in the format DD/MM/YYYY".format(date_field), problem_rows)
