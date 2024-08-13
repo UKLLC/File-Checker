@@ -17,15 +17,18 @@ def check_encoding(filename):
             for _ in csv_reader:
                 line_count += 1
         except UnicodeDecodeError as err:
-            sf.error_output(out_filename, "File Import Warning", "File may contain unrecognised characters. The following error will help you identify the location of the first problematic character. The position refers to the index of the character in the entire file (the first line should be approximately 450 characters). Python Error: {}".format(err))
+            sf.error_output(out_filename, "File Import Warning", "File may contain unrecognised characters. The following error will help you identify the location of the first problematic character. The position refers to the index of the character in the entire file (the first line should be approximately 450 characters). Python Error: {}\nIf you cannot identify an unusual character at the specified position, please ignore this warning.".format(err))
+    
+    '''
     with open(filename, encoding="utf-8") as csv_file:
         try:
             csv_reader = csv.DictReader(csv_file)
             for _ in csv_reader:
                 line_count += 1
         except UnicodeDecodeError as err:
-            sf.error_output(out_filename, "File Import Error", "File cannot be read with encoding UTC-8. This is likely caused by unrecognised characters. The following error will help you identify the location of the first problematic character. The position refers to the index of the character in the entire file (the first line should be approximately 450 characters). Python Error: {}".format(err))
-
+            sf.error_output(out_filename, "File Import Error", "File cannot be read with encoding UTF-8. This is likely caused by unrecognised characters. The following error will help you identify the location of the first problematic character. The position refers to the index of the character in the entire file (the first line should be approximately 450 characters). Python Error: {}".format(err))
+    '''
+    
 def load_labelled_file(filename):
     '''
     Loads a CSV file. Read formatting. Formats each line as a dictionary. Saves dictionaries in a list.
@@ -343,7 +346,7 @@ def check_postcode(input_data):
                     problem_lines.append(i + 1)
 
     if problem_lines != []:
-        sf.error_output(out_filename, "Postcode Format Warning", "Postcode of unexpected format. British postcodes should be of the form 'YYYY ZZZ', 'YYY ZZZ' or 'YY ZZZ', including a space. Ignore this warning if it is caused by a foreign postcode.", problem_lines)
+        sf.error_output(out_filename, "Postcode Format Warning", "Postcode of unexpected format. British postcodes should be of the form 'YYYY ZZZ', 'YYY ZZZ' or 'YY ZZZ', including a single space. Ignore this warning if it is caused by a foreign postcode.", problem_lines)
 
 def check_dates(input_data):
     '''
