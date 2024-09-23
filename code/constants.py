@@ -49,7 +49,7 @@ UK_LLC_STUDY_CODES = [
     "MCS",
     "NICOLA",
     "NCDS58",
-    "NEXTSTEPS",
+    "NEXTSTEP",
     "NIHRBIO_COPING",
     "NSHD46",
     "SABRE",
