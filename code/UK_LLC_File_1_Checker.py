@@ -447,14 +447,23 @@ def check_vars(input_data):
         if not verify_char(input_data[row_index]["Geocoding_Permission"], ["2","1", "0"], nullAllowed=True):
             error_dict["Geocoding_Permission"].append(row_index + 1)
         # "ZoeSymptomTracker_Permission", char(1)
-        if not verify_char(input_data[row_index]["ZoeSymptomTracker_Permission"], ["1", "0"], nullAllowed=True):
-            error_dict["ZoeSymptomTracker_Permission"].append(row_index + 1)
+        # if not verify_char(input_data[row_index]["ZoeSymptomTracker_Permission"], ["1", "0"], nullAllowed=True):
+        #     error_dict["ZoeSymptomTracker_Permission"].append(row_index + 1)
         # "Multiple_Birth", char(1)
         if not verify_char(input_data[row_index]["Multiple_Birth"], ["1", "0", "9"], nullAllowed=True):
             error_dict["Multiple_Birth"].append(row_index + 1)
         # "National_Opt_Out", char(1)
         if not verify_char(input_data[row_index]["National_Opt_Out"], ["1", "0"], nullAllowed=True):
             error_dict["National_Opt_Out"].append(row_index + 1)
+        # "DFE_Linkage_Permission", char(1)
+        if not verify_char(input_data[row_index]["DFE_Linkage_Permission"], ["1", "0"], nullAllowed=True):
+            error_dict["DFE_Linkage_Permission"].append(row_index + 1)
+        # "DWP_Linkage_Permission", char(1)
+        if not verify_char(input_data[row_index]["DWP_Linkage_Permission"], ["1", "0"], nullAllowed=True):
+            error_dict["DWP_Linkage_Permission"].append(row_index + 1)
+        # "HMRC_Linkage_Permission", char(1)
+        if not verify_char(input_data[row_index]["HMRC_Linkage_Permission"], ["1", "0"], nullAllowed=True):
+            error_dict["HMRC_Linkage_Permission"].append(row_index + 1)
 
     for key, value in error_dict.items():
         if error_dict[key] != []:

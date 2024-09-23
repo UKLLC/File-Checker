@@ -25,9 +25,12 @@ FILE_FORMAT = [
     "NHS_NI_Linkage_Permission",
     "NHS_NI_Study_Number",
     "Geocoding_Permission",
-    "ZoeSymptomTracker_Permission",
     "Multiple_Birth",
-    "National_Opt_Out"
+    "National_Opt_Out",
+    "DFE_Linkage_Permission",
+    "DWP_Linkage_Permission",
+    "HMRC_Linkage_Permission"
+    
 ]
 
 UK_LLC_STUDY_CODES = [
