@@ -449,6 +449,15 @@ def check_vars(input_data):
         # "Geocoding_Permission", char(1)
         if not verify_char(input_data[row_index]["Geocoding_Permission"], ["2","1", "0"], nullAllowed=True):
             error_dict["Geocoding_Permission"].append(row_index + 1)
+        # "Small_Area_Permission", char(1)
+        if not verify_char(input_data[row_index]["Small_Area_Permission"], ["1", "0"], nullAllowed=True):
+            error_dict["Small_Area_Permission"].append(row_index + 1)
+        # "Environment_Permission", char (1)
+        if not verify_char(input_data[row_index]["Environment_Permission"], ["1", "0"], nullAllowed=True):
+            error_dict["Environment_Permission"].append(row_index + 1)
+        # "Property_Level_Permission", char (1)
+        if not verify_char(input_data[row_index]["Property_Level_Permission"], ["1", "0"], nullAllowed=True):
+            error_dict["Property_Level_Permission"].append(row_index + 1)
         # "ZoeSymptomTracker_Permission", char(1)
         # if not verify_char(input_data[row_index]["ZoeSymptomTracker_Permission"], ["1", "0"], nullAllowed=True):
         #     error_dict["ZoeSymptomTracker_Permission"].append(row_index + 1)
