@@ -33,7 +33,7 @@ FILE_FORMAT = [
     "DFE_Linkage_Permission",
     "DWP_Linkage_Permission",
     "HMRC_Linkage_Permission"
-    
+
 ]
 
 UK_LLC_STUDY_CODES = [
@@ -45,7 +45,7 @@ UK_LLC_STUDY_CODES = [
     "ELSA",
     "EPIC",
     "EXCEED",
-    "FENLAND", 
+    "FENLAND",
     "GENSCOT",
     "GLAD",
     "INTERVAL",
@@ -61,7 +61,8 @@ UK_LLC_STUDY_CODES = [
     "TRACKC19",
     "TWINSUK",
     "UKBB",
-    "UKHLS"
+    "UKHLS",
+    "UKREACH"
 ]
 ACCEPTABLE_STUDY_CODES = [
     "NIHRBIO",
@@ -70,8 +71,7 @@ ACCEPTABLE_STUDY_CODES = [
     "EPICN",
     "NCDS",
     "NSHD",
-    "TRACKCOVID",
-    "LSTYPE"
+    "TRACKCOVID",    "LSTYPE"
 ]
 #"COPING",
 #"NIHRBIO",
