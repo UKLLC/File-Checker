@@ -42,6 +42,7 @@ UK_LLC_STUDY_CODES = [
     "BCS70",
     "BIB",
     "COMPARE",
+    "CAPS",
     "ELSA",
     "EPIC",
     "EXCEED",
