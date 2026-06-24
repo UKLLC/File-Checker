@@ -1,0 +1,13 @@
+File Naming Error
+Filename does not match the naming convention. Study identifier not recognised. Make sure the leading part of the filename is among our listed recognised study identifiers.
+--------------------
+File Naming Error
+Filename does not match the naming convention. Should include FILE1 designation following study code.
+--------------------
+File Naming Error
+Filename does not match the naming convention. Should include integer version number.
+--------------------
+Unrecognised field names
+Column field name(s)  are not as expected. Unable to continue.
+Line(s) (ignoring header) 0
+--------------------
